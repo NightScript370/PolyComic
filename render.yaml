@@ -1,0 +1,60 @@
+# Default: Docker runtime. To use Render's native Python runtime instead, replace the
+# runtime/dockerfilePath lines below with the commented block underneath them.
+services:
+  - type: web
+    name: polycomic
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # --- Alternative: native Python runtime (no Docker) ---
+    # runtime: python
+    # buildCommand: pip install -r requirements.txt
+    # startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    # (also set a PYTHON_VERSION env var, e.g. 3.13.0; Render's postgresql:// DATABASE_URL is
+    # rewritten to postgresql+asyncpg:// by the app and by alembic)
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: polycomic-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: IMAGE_PROVIDER
+        value: gemini
+      # Per-tier prices. Do not set BOOK_PRICE_CENTS here: when set it overrides both.
+      - key: PRICE_PROFESSIONAL_CENTS
+        value: "399"
+      - key: PRICE_COST_EFFICIENT_CENTS
+        value: "99"
+      - key: COST_EFFICIENT_IMAGE_MODEL
+        value: gemini-3.1-flash-lite-image
+      - key: LOG_LEVEL
+        value: INFO
+      - key: BOOK_PAGES
+        value: "all"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_IMAGE_MODEL
+        sync: false
+      - key: GEMINI_VISION_MODEL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+
+databases:
+  - name: polycomic-db
+    plan: free

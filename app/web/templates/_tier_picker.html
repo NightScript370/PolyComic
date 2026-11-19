@@ -1,0 +1,21 @@
+{# Quality tier picker (story book and /hw1). Options come from app.tiers.tier_options();
+   js/form.js refreshes the prices from GET /api/wallet. Native radios: arrow keys work. #}
+{% set tier_opts = tiers or [
+  {"id": "professional", "name": "PROFESSIONAL", "price": "$3.99", "price_cents": 399, "desc": "Top-quality art, slower", "checked": false},
+  {"id": "cost_efficient", "name": "COST-EFFICIENT", "price": "$0.99", "price_cents": 99, "desc": "Good art, low price", "checked": true}
+] %}
+<fieldset class="field">
+  <legend class="label">{{ tier_step }}. Quality</legend>
+  <div class="cartridges tiers" id="tiers" role="radiogroup" aria-label="Quality">
+    {% for t in tier_opts %}
+    <label class="cart tier-cart">
+      <input type="radio" name="tier" value="{{ t.id }}"{% if t.checked %} checked{% endif %}>
+      <span class="cart-body">
+        <span class="cart-name">{{ t.name }}</span>
+        <span class="cart-price" data-tier-price="{{ t.id }}" data-cents="{{ t.price_cents }}">{{ t.price }}</span>
+        <span class="cart-desc">{{ t.desc }}</span>
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+</fieldset>

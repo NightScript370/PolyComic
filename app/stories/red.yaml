@@ -1,0 +1,873 @@
+# Little Red Riding Hood - PolyComic story definition
+# The uploaded child plays the role of Little Red Riding Hood. Style text is
+# NOT included here; it is injected later from the locked style string. Every
+# description below is style-neutral. Layout ids refer to
+# app/template/layouts.yaml.
+# Gentle version: nobody is eaten. Grandma hides in the wardrobe, the wolf is
+# chased away, and everyone ends safe together.
+#
+# Text placeholders (page `text`, subtitle and about_me strings only):
+#   {name} {they} {them} {their} {theirs} {themself} {They} {Their}
+#   verb helpers {is} {was} {has} {does}
+#   (he/she -> is/was/has/does, they -> are/were/have/do)
+# Lower-case "she"/"he"/"her"/"his"/"them" written literally in text refer to
+# other characters (Grandma, the wolf, the woodcutter, a group) and are NOT
+# substituted.
+# Art fields (caption, plate_prompt, hero_instruction) call the hero
+# "the hero child" so they stay name- and gender-neutral.
+# The global "no text, letters, symbols or signage" rule is added by the prompt
+# builder and is not repeated per page.
+
+id: red
+title: "Little Red Riding Hood"
+hero_role: red
+hero_role_label: "as Little Red Riding Hood"
+subtitle: "starring {name} as Little Red Riding Hood"
+age_range: "4-8"
+source: "public-domain European folk tale; original wording, gentle ending"
+
+hero_outfit:
+  id: red_outfit
+  description: >-
+    A bright red hooded cape fastened at the neck with a round wooden toggle,
+    its hood always DOWN on the shoulders (never up over the head), worn over
+    a cream long-sleeved shirt and a navy-blue knee-length tunic, dark grey
+    leggings and brown ankle boots.
+  continuity: >-
+    Identical on every page. The hood is always DOWN, resting on the shoulders -
+    never pulled up over the head, not even in wind, while running or when
+    scared - so the face, hair and any headwear or glasses the hero wears stay
+    fully visible. There is only ever one wicker
+    basket: on page 1 it is still packed on the kitchen table, on pages 2-7
+    it is carried on the left arm, and from page 8 on it is left on Grandma's
+    table. Hair and face come only from the hero reference photo.
+  # The whistle is NOT part of the base outfit (the hero reference has none): Mother hands
+  # it over on page 1, so a whistle in the outfit drew two whistles there and on page 12.
+  extras:
+    - pages: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+      description: "From this page on, the hero child wears the small silver whistle Mother gave them on its red ribbon round the neck - exactly one whistle."
+
+# Props are the single source of truth for objects that recur across pages. A page
+# lists the ones it shows (`props: [basket]`); the image prompt gets a "Props (draw
+# exactly as described, same on every page)" block and the grader checks the same
+# text. Captions and must_be_visible must not contradict them. An unknown id fails
+# loading. Descriptions say what the object looks like (what is inside the basket
+# changes from page to page and is given by the page itself). `count: 1` adds
+# "exactly one in the whole picture, never two" for single objects.
+props:
+  basket:
+    description: "a round wicker basket with one arched wicker handle, lined with a blue-and-white checked cloth"
+    count: 1
+  whistle:
+    description: "a small shiny silver whistle, about the length of a finger, on a red ribbon"
+    count: 1
+    states:
+      - pages: [1]
+        description: "Mother holds it out on its red ribbon toward the hero child; the hero child is NOT wearing a whistle yet - the only whistle in the picture is the one in Mother's hand"
+      - pages: [2, 10, 11]
+        description: "it hangs on its red ribbon round the hero child's neck - exactly one whistle"
+      - pages: [12]
+        description: "the same whistle, still on its red ribbon round the hero child's neck, is lifted to the lips - exactly one whistle, no second one hanging on the chest"
+  flowers: "a bunch of wildflowers: yellow buttercups, white daisies, blue cornflowers and red poppies"
+  cottage:
+    description: "Grandma's cottage - the same house on every page, near or far: a small one-storey cottage with white-painted walls, a thick golden-straw thatched roof, a round green front door, blue window shutters, a low white picket fence and gate, and a flower garden with pink hollyhocks, on top of a grassy hill. A cottage with a tiled, slate or red roof, stone or grey walls, or a different door is wrong"
+    count: 1
+  quilt:
+    description: "Grandma's patchwork quilt - the same on every page: big square patches in a checkerboard of three colours, rose pink, butter yellow and sage green, each patch with a small white daisy in its centre, and a wide pale-blue border. A quilt of other colours or another pattern is wrong"
+    count: 1
+  wardrobe:
+    description: "a tall painted wardrobe, pale blue with little flowers"
+    count: 1
+  nightcap:
+    description: "Grandma's frilly white nightcap with a pink ribbon"
+    count: 1
+  broom:
+    description: "Grandma's straw broom with a long plain wooden handle"
+    count: 1
+  axe:
+    description: "the woodcutter's axe with a plain wooden handle, its blade covered by a brown leather sleeve"
+    count: 1
+
+# Family variants: the pipeline picks ONE variant id (fam_a..fam_d) per book,
+# closest to the child's photo, and uses it for every family member.
+family_variant_ids: [fam_a, fam_b, fam_c, fam_d]
+
+characters:
+  - id: mother
+    name: "Mother"
+    family: true
+    age: 30
+    description: >-
+      A young mother around 30 years old, warm and smiling, with a youthful
+      face and smooth skin - no grey hair, no wrinkles - her hair tied back
+      with a green ribbon,
+      wearing a mustard-yellow dress with a white apron and the sleeves pushed
+      up.
+    size: >-
+      A grown-up woman, about one and a half times the hero child's height
+      (the child's head reaches about her chest).
+    variants:
+      - {id: fam_a, skin_tone: "fair, rosy", hair: "curly auburn hair"}
+      - {id: fam_b, skin_tone: "light golden", hair: "straight glossy black hair"}
+      - {id: fam_c, skin_tone: "warm medium brown", hair: "wavy dark-brown hair"}
+      - {id: fam_d, skin_tone: "deep brown", hair: "coily black hair"}
+    pages: [1, 20]
+
+  - id: grandmother
+    name: "Grandma"
+    family: true
+    age: 70
+    description: >-
+      An elderly grandmother around 70 years old, small and round, with silver
+      hair and soft wrinkles, round wire spectacles, rosy cheeks, a
+      long pale-blue nightdress, a lilac knitted cardigan and woolly pink
+      slippers. She never wears a nightcap or a shawl in this story.
+    size: >-
+      Small and round: only about a head taller than the hero child (the
+      child's head reaches about her shoulder).
+    variants:
+      - {id: fam_a, skin_tone: "fair, rosy, softly wrinkled", hair: "short curly silver hair"}
+      - {id: fam_b, skin_tone: "light golden, softly wrinkled", hair: "straight silver-white hair in a neat bun"}
+      - {id: fam_c, skin_tone: "warm medium brown, softly wrinkled", hair: "wavy silver hair in a low bun"}
+      - {id: fam_d, skin_tone: "deep brown, softly wrinkled", hair: "short coily silver-white hair"}
+    pages: [8, 14, 15, 16, 18, 19, 20]
+
+  - id: wolf
+    name: "the wolf"
+    description: >-
+      A tall, lanky grey wolf who walks upright, with shaggy fur, a fluffy
+      tail, big pointed ears, yellow-green eyes and a long snout. Sly and
+      silly rather than frightening; his face shows the expression the page
+      asks for.
+    size: >-
+      Standing upright he is about one and a half times the hero child's
+      height (the child's head reaches about his chest); on all fours his
+      back is about level with the child's waist. His head is only a little
+      bigger than the child's head - never huge - and in a bed he takes up
+      no more room than a grown-up person would.
+    # Reference sheets only: the plain-wolf sheet (an isolated wolf) was refused with
+    # finish_reason=PROHIBITED_CONTENT while the disguised one passed.
+    sheet_description: >-
+      A friendly, silly cartoon storybook wolf for a children's picture book,
+      walking upright on two legs: soft shaggy grey fur, a fluffy tail, big
+      pointed ears, round yellow-green eyes and a long rounded snout, a
+      mild, friendly face with the mouth closed. Tall, lanky and clumsy -
+      funny, never scary.
+    # What he wears depends on the page: plain wolf on 2-3 and 18; Grandma's
+    # nightcap and shawl from the moment he is in her bed (7) until he
+    # stumbles out of the garden with the cap over his eyes (15); on 17 the
+    # cap flies off his head as he runs (one cap, already off his head).
+    plain: "just his own grey fur: no nightcap, no shawl and no clothes of any kind"
+    costumes:
+      - id: grandma_disguise
+        pages: [7, 8, 9, 10, 11, 13, 14, 15]
+        description: >-
+          Grandma's frilly white nightcap with a pink ribbon on his head, his
+          big pointed ears poking up through it, and her lilac shawl round his
+          shoulders. Exactly one nightcap, always on his head (it may sit
+          askew or slip down over his eyes, but it never comes off).
+      - id: cap_flying
+        pages: [17]
+        sheet: false
+        description: >-
+          No shawl and no clothes; Grandma's frilly white nightcap is flying
+          off his head into the air just behind his ears - exactly one
+          nightcap, already off his head, none on it.
+    ref_priority: 0
+    pages: [2, 3, 7, 8, 9, 10, 11, 13, 14, 15, 17, 18]
+
+  - id: woodcutter
+    name: "the woodcutter"
+    description: >-
+      A tall, broad, friendly woodcutter with a short dark beard and kind
+      eyes, wearing a green felt hat with a feather, a red-and-black checked
+      shirt, a brown leather vest and boots. He carries an axe on his shoulder
+      with its blade covered by a leather sleeve; he never swings it.
+    size: >-
+      A tall grown-up man, about twice the hero child's height (the child's
+      head reaches about his belt).
+    ref_priority: 0
+    pages: [16, 17, 18, 20]
+
+pages:
+
+  - page: 1
+    layout: s01_home_two_shot
+    speaker: mother
+    title: "The basket"
+    text: "Take this basket to Grandma, said Mother, and this little whistle too. And remember, keep to the path!"
+    speech:
+      - {who: mother, says: "Take this basket to Grandma,"}
+      - {who: mother, says: "and this little whistle too. And remember, keep to the path!"}
+    caption: >-
+      The hero child and the mother in their cottage kitchen. The mother holds
+      out a small silver whistle, about the length of a finger, on a red
+      ribbon; the basket sits packed on the
+      table. The forest is visible through the open door.
+    plate_prompt: >-
+      A cosy cottage kitchen in morning light. On the table, a wicker basket
+      with a blue-and-white checked cloth, a loaf and a jar of honey peeking
+      out. At the back, the open door shows a sunny path leading into a green
+      forest. Leave two empty spaces on the floor where people would stand
+      facing each other across the table: one left of center, one right of
+      center. Plain floorboards across the lower third.
+    hero_instruction: >-
+      Insert the hero child standing left of center facing the mother. Full
+      face toward the viewer, front-lit, eyes turned to look at the mother, an
+      eager smile, one hand reaching for the whistle Mother holds out (the
+      hero child is not wearing a whistle yet), the other hand resting on
+      the handle of the basket on the table (the only basket in the picture -
+      the hero child does not carry a second one). Wearing hero_outfit with
+      the hood DOWN on the shoulders, never up over the head. Keep the hero child's head and body in the upper
+      two-thirds of the image.
+    characters: [mother]
+    expressions:
+      mother: "warm and smiling, a little serious as she gives advice: a gentle smile, eyebrows slightly raised"
+    props: [basket, whistle]
+    palette_note: "Morning; warm, bright daylight from the door, cosy browns and creams with the red cape as the strongest colour."
+    expression: "happy and eager: a bright smile, eyes shining"
+    must_be_visible: ["hero face", "mother face", "whistle", "basket", "open door to the forest"]
+
+  - page: 2
+    layout: s02_path_encounter
+    speaker: wolf
+    title: "The stranger"
+    text: "Good morning, said a wolf with a very polite smile. And where are you going, little one?"
+    speech:
+      - {who: wolf, says: "Good morning,"}
+      - {who: wolf, says: "And where are you going, little one?"}
+    caption: >-
+      On the forest path, the wolf steps out from behind a tree and bows. The
+      hero child stands holding the basket, looking up at him.
+    plate_prompt: >-
+      A sunny forest path winding between tall trees, a gap in the canopy
+      showing open sky across the top fifth. The wolf stands right of center
+      facing left, half out from behind a big oak, bowing with one paw on his
+      chest and a too-polite closed-mouth grin. Ferns and mushrooms line the
+      path. Leave an empty space left of center on the path where a small
+      person would stand.
+    hero_instruction: >-
+      Insert the hero child standing on the path left of center,
+      three-quarter view turned toward the wolf, basket on the left arm, the
+      silver whistle on its ribbon round the neck, a curious, slightly unsure
+      expression.
+      Same clothes as page 1 (hero_outfit, hood DOWN on the shoulders, never up over the head).
+    characters: [wolf]
+    expressions:
+      wolf: "too polite: a closed-mouth grin, eyes half-lidded and sly, bowing"
+    props: [basket, whistle]
+    palette_note: "Late morning; dappled sunlight, fresh greens, pale blue sky through the trees."
+    expression: "curious but a little unsure: head tilted, eyebrows slightly raised, mouth closed or a small uncertain half-smile"
+    must_be_visible: ["hero face", "wolf face", "basket", "forest path"]
+
+  - page: 3
+    layout: s03_dusk_consequence
+    speaker: wolf
+    portrait: moment
+    portrait_expression: sly
+    title: "The shortcut"
+    text: "Why not pick some flowers for Grandma? said the wolf. Then off he slipped, down the shady shortcut."
+    speech:
+      - {who: wolf, says: "Why not pick some flowers for Grandma?"}
+    caption: >-
+      In the deep shade of the forest, the wolf slinks away down a dark side
+      path toward the hill. The hero child stands at the edge of the main
+      path, watching him go.
+    plate_prompt: >-
+      A shadowy part of the forest where two paths split. Up the middle of the
+      frame, a narrow dark shortcut path twists away through tall trees, and
+      the wolf is running along it on all fours, looking back with a sly grin,
+      tail streaming. Far beyond, a grassy hill with a tiny cottage peeks
+      through the trees. On the right, the edge of the sunnier main path.
+      Leave an empty space at the right edge of the main path where a small
+      person would stand and watch. The lower fifth is dark, plain ferns and
+      grass in shadow.
+    hero_instruction: >-
+      Insert the hero child standing at the edge of the main path on the
+      right, three-quarter view, looking up-left after the wolf, a puzzled
+      frown, one hand holding the basket handle tight. A soft rim light on the
+      hair, face still clearly readable. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [wolf]
+    expressions:
+      wolf: "sly and sneaky: eyes narrowed, a crooked closed-mouth grin, looking back over his shoulder"
+    props: [basket, cottage]
+    palette_note: "Deep forest shade; noticeably darker than pages 1-2: blue-green shadows, only thin shafts of light."
+    expression: "puzzled and a little worried: a frown, lips pressed together, no smile"
+    must_be_visible: ["hero face", "wolf running", "shortcut path", "distant cottage"]
+
+  - page: 4
+    layout: s04_wonder_wide
+    speaker: hero
+    title: "The flower meadow"
+    text: "{name} stepped out into a meadow full of flowers, all glowing in the sun. Grandma will love these!"
+    speech:
+      - {who: hero, says: "Grandma will love these!"}
+    caption: >-
+      Sunlight pours into a wide meadow full of wildflowers. The hero child is
+      small at the lower-left, gathering a bunch of flowers.
+    plate_prompt: >-
+      Wide view of a forest clearing opening onto a meadow bursting with
+      wildflowers (buttercups, daisies, cornflowers, poppies), golden sunbeams
+      fanning down from the left of center, butterflies in the air. The meadow
+      rolls up toward a grassy hill in the distance. Leave an empty space in
+      the lower-left among the flowers where a small person would stand
+      picking flowers. Keep the top-right corner as plain soft sky.
+    hero_instruction: >-
+      Insert the hero child small in frame at the lower-left, kneeling in the
+      flowers with a bunch in one hand, face turned up toward the sunbeams
+      with a delighted smile, the basket alongside. Wearing hero_outfit, hood
+      DOWN on the shoulders, never up over the head.
+    characters: []
+    props: [basket, flowers]
+    palette_note: "Bright midday sun bursting in after the shade of page 3; warm gold light, saturated flower colours."
+    expression: "delighted: a big open smile, bright eyes"
+    must_be_visible: ["hero face", "flower meadow", "sunbeams", "basket"]
+
+  - page: 5
+    layout: s05_vertical_ascent
+    title: "Up the hill"
+    text: "With {their} basket full of flowers, {name} climbed the winding path, up and up the hill."
+    caption: >-
+      A winding path zigzags up a steep grassy hill. The hero child climbs it
+      with the basket and flowers; the forest is far below.
+    plate_prompt: >-
+      Tall vertical view of a steep grassy hill: a path zigzags from the
+      bottom of the frame to the top, with stone steps in places. At the very
+      top, the corner of a thatched roof peeks over the crest. The forest
+      treetops lie far below at the bottom. Leave an empty space on the middle
+      bend of the path where a small climbing figure would be. Keep the bottom
+      fifth as soft, plain treetops.
+    hero_instruction: >-
+      Insert the hero child climbing the middle bend of the path,
+      three-quarter view looking back over the shoulder toward the viewer with
+      a happy, slightly out-of-breath smile, the basket on one arm with
+      flowers poking out, cape swinging. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: []
+    props: [basket, flowers, cottage]
+    palette_note: "Early afternoon; clear bright light, long gentle shadows on the hill."
+    expression: "happy and a little out of breath: smiling with the mouth slightly open"
+    must_be_visible: ["hero face", "winding path", "basket with flowers", "roof at the top"]
+
+  - page: 6
+    layout: s06_arrival_wide
+    title: "Grandma's cottage"
+    text: "At the top stood Grandma's cottage. But the door was open, just a little."
+    caption: >-
+      Grandma's little thatched cottage on top of the hill, its round green
+      door slightly open. A trail of muddy paw prints leads up the path to the
+      door. The hero child stands at the gate.
+    plate_prompt: >-
+      Wide view of a small whitewashed cottage with a thatched roof, a round
+      green door standing slightly ajar, blue shutters and a low picket gate,
+      filling the upper two-thirds. A trail of muddy paw prints runs along the
+      garden path to the door. Hollyhocks by the wall. Leave an empty space in
+      the lower-left foreground by the gate where a small person would stand.
+      Keep the bottom-right as plain grass.
+    hero_instruction: >-
+      Insert the hero child small at the lower-left by the gate,
+      three-quarter view toward the cottage, face visible, head tilted,
+      noticing the paw prints with a thoughtful, slightly uneasy look and no
+      smile. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head, basket on one arm.
+    characters: []
+    props: [basket, cottage]
+    palette_note: "Afternoon; the sun slightly lower, a faint cool shadow over the door."
+    expression: "thoughtful and slightly uneasy: brows drawn together, head tilted, no smile"
+    must_be_visible: ["hero face", "cottage", "door ajar", "paw prints"]
+
+  - page: 7
+    layout: s07_threshold_meeting
+    speaker: wolf
+    # The voice from the bed stays a mystery (the reveal): the tab reads "???" and no
+    # portrait is ever shown here.
+    speaker_label: "???"
+    title: "A very deep voice"
+    text: "Come in, dear! called a voice from the bed. It was a very deep voice for Grandma."
+    speech:
+      - {who: wolf, says: "Come in, dear!"}
+    caption: >-
+      The hero child stands at the open cottage door. Inside, in the bed, a
+      figure lies under the quilt wearing Grandma's frilly nightcap, with two
+      big pointed ears poking out.
+    plate_prompt: >-
+      The round green cottage door wide open, its frame making a strong
+      vertical on the left. Inside the dim cosy room on the right, a bed with
+      a patchwork quilt pulled up high; the wolf lies under it wearing a
+      frilly white nightcap with a pink ribbon and a lilac shawl, two big
+      pointed grey ears poking through the cap and a long grey snout just
+      showing above the quilt. Leave an empty space at the left of the
+      threshold where a small person would stand looking in. Keep the top
+      fifth as plain wall and lintel.
+    hero_instruction: >-
+      Insert the hero child at the left of the threshold, three-quarter view
+      looking into the room toward the bed, clearly scared: eyes wide open,
+      eyebrows raised and drawn together in worry, mouth open in a small
+      gasp, shoulders hunched and leaning back from the doorway, one hand
+      clutching the basket handle tight against the body. No smile. Wearing
+      hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [wolf]
+    expressions:
+      wolf: "pretending to be Grandma: eyes half closed, a prim little closed-mouth smile"
+    props: [basket, nightcap, quilt, cottage]
+    palette_note: "Interior seen from outside; warm afternoon light at the door, dimmer cosy light inside."
+    expression: "scared, the way a picture-book child is scared (not horror): eyes wide open, eyebrows raised and drawn together in worry, mouth open in a small gasp, leaning back - no smile"
+    must_be_visible: ["hero face", "bed", "nightcap with ears", "doorway"]
+
+  - page: 8
+    layout: s08_interior_secret
+    speaker: grandmother
+    title: "Shh!"
+    text: "Then {name} saw Grandma, peeping out of the wardrobe! Grandma put a finger to her lips. Shh!"
+    speech:
+      - {who: grandmother, says: "Shh!"}
+    caption: >-
+      Inside the cottage, Grandma peeps out of the tall flowered wardrobe with
+      a finger to her lips. The hero child, beside the wardrobe, puts the
+      basket on the table. The wolf in the bed on the left has not noticed.
+    plate_prompt: >-
+      Inside a cosy one-room cottage: on the right, a tall pale-blue wardrobe
+      painted with little flowers, its door open a crack, with a narrow empty
+      gap where a face would peep out. A small table nearby. On the far left,
+      the wolf lies in the bed under the quilt with the nightcap pulled low
+      over his eyes. Leave an empty space on the right between the table and
+      the wardrobe where a small person would stand. Keep the top fifth as
+      plain ceiling beams.
+    hero_instruction: >-
+      Insert the hero child on the right near the wardrobe, three-quarter
+      view, setting the basket on the table with one hand and pressing the
+      other hand to the chest in surprise, glancing at Grandma with wide eyes,
+      mouth closed. Only Grandma has a finger to her lips - the hero child
+      does NOT copy that gesture. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [grandmother, wolf]
+    expressions:
+      grandmother: "shushing with a secret: one finger to her lips, eyes twinkling, eyebrows raised"
+      wolf: "dozing smugly, unaware: eyes hidden under the nightcap, mouth closed - not looking at anyone"
+    props: [basket, wardrobe, quilt]
+    palette_note: "Interior; warm afternoon window light from the right, cosy shadow on the bed side."
+    expression: "surprised and hushed: eyes wide, mouth closed, one hand pressed to the chest - no finger at the lips, no smile"
+    must_be_visible: ["hero face", "Grandma's face in the wardrobe", "wardrobe", "wolf in the bed", "basket"]
+
+  - page: 9
+    layout: s09_low_angle_reveal
+    title: "What big ears"
+    text: "Grandma, what big ears you have! said {name}. All the better to hear you with, said the wolf."
+    speech:
+      - {who: hero, says: "Grandma, what big ears you have!"}
+      - {who: wolf, says: "All the better to hear you with,"}
+    caption: >-
+      Seen from low down, the wolf sits up in the bed in the nightcap, his
+      huge ears poking through it. The hero child stands in the lower corner,
+      looking up.
+    plate_prompt: >-
+      Low-angle view from beside the bed: the wolf sits up tall against the
+      pillows, filling the upper and middle frame, wearing the frilly nightcap
+      and lilac shawl, his huge pointed ears sticking up through the cap, a
+      fake sweet smile with his mouth closed. Patchwork quilt in the
+      foreground. Leave an empty space in the lower-left corner where a small
+      person would stand in profile looking up. Keep the bottom-right as plain
+      floor.
+    hero_instruction: >-
+      Insert the hero child in the lower-left corner, profile view facing
+      right and up toward the wolf, hands behind the back, a wary, doubtful
+      look: one eyebrow raised, lips pressed together, no smile. Wearing
+      hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [wolf]
+    expressions:
+      wolf: "fake sweet: a closed-mouth smile, eyelids fluttering innocently"
+    props: [nightcap, quilt]
+    palette_note: "Interior; warm lamplight from below, a little comical, not menacing."
+    expression: "wary and doubtful: one eyebrow raised, lips pressed together, no smile"
+    must_be_visible: ["hero face", "wolf face", "big ears", "nightcap"]
+
+  - page: 10
+    layout: s10_closeup_reaction
+    title: "What big eyes"
+    text: "Grandma, what big eyes you have! All the better to see you with, my dear."
+    speech:
+      - {who: hero, says: "Grandma, what big eyes you have!"}
+      - {who: wolf, says: "All the better to see you with, my dear."}
+    caption: >-
+      Close-up of the hero child's face, one eyebrow raised, looking
+      sideways; the face sits in the middle band of the picture, well clear
+      of the top and bottom fifths. Behind, softly blurred at the right, two
+      big yellow-green eyes peer over the quilt.
+    art_caption: >-
+      A tall portrait close-up of the hero child from just above the head
+      down to the waist, one eyebrow raised, looking sideways; the face sits
+      in the middle band of the picture, well clear of the top and bottom
+      fifths, and the shoulders and cape continue down to the bottom edge. Behind, in dim light at the right, two
+      big yellow-green eyes peer over the quilt. The whole picture is painted
+      crisply in the same style, edge to edge - no blurred or smeared areas.
+    plate_prompt: >-
+      Close-up background inside the cottage: in dim light at the right side
+      of the middle band, two very large yellow-green eyes peer over the edge
+      of a patchwork quilt, under a frilly nightcap, below the top fifth.
+      Leave the center of the frame empty where a face in close-up would be.
+      The top fifth is the dim cottage wall and ceiling beams, painted right
+      to the top edge; keep the lower fifth as simple, dim quilt, painted
+      crisply in the same style (no blur).
+    hero_instruction: >-
+      Insert the hero child's face in the middle band of the frame, a little
+      left of center: eyes a little above the center of the picture, the top
+      of the head below the top fifth and the chin well above the bottom
+      fifth (the face takes up about a third of the picture's height, not
+      more); the shoulders, the cape and the upper body fill the frame below
+      the face down to the bottom edge. Full face toward the viewer, eyes
+      glancing sideways toward the big eyes, one eyebrow raised, lips pressed
+      in a knowing little line. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head, the whistle
+      ribbon visible.
+    characters: [wolf]
+    expressions:
+      wolf: "only his eyes show over the quilt: big, round and eager"
+    props: [whistle, nightcap, quilt]
+    palette_note: "Interior; warm key light on the hero child's face with a soft rim, the background dim."
+    expression: "knowing and wary: one eyebrow raised, eyes glancing sideways, lips pressed in a little line, no smile"
+    must_be_visible: ["hero face", "wolf's eyes"]
+
+  - page: 11
+    layout: s11_tense_two_shot
+    title: "What big teeth"
+    text: "And Grandma, what big teeth you have! All the better to gobble you up! cried the wolf, and out of bed he sprang."
+    speech:
+      - {who: hero, says: "And Grandma, what big teeth you have!"}
+      - {who: wolf, says: "All the better to gobble you up!"}
+    caption: >-
+      The wolf springs out of bed, all tangled in the quilt, nightcap
+      slipping, with a big silly grin. The hero child steps back on the left.
+    art_caption: >-
+      One single moment, framed tall from the floor up to the ceiling
+      beams: on the right, the wolf is halfway out of the bed,
+      comically tangled in the patchwork quilt, his one frilly nightcap
+      slipping down over one eye but still on his head, a big silly toothy
+      grin. The hero child steps back on the left. The wolf appears once, and
+      there is exactly one nightcap - on his head.
+    plate_prompt: >-
+      Medium-wide view of the cottage room: on the right, the wolf leaps up
+      out of the bed but is comically tangled in the patchwork quilt, his one
+      nightcap sliding over one eye but still on his head, arms flailing, a
+      big toothy grin that is silly rather than scary. Pillows tumble to the
+      floor. One wolf, one nightcap. Leave an empty
+      space on the left where a small person would step back. Keep the top
+      fifth as plain wall.
+    hero_instruction: >-
+      Insert the hero child on the left, profile facing right toward the
+      wolf, stepping back with one foot and leaning away, one hand going to
+      the whistle at the neck, clearly scared: eyes wide open, eyebrows raised
+      high and worried, mouth open in a gasp. No smile. Wearing hero_outfit,
+      hood DOWN on the shoulders, never up over the head.
+    characters: [wolf]
+    expressions:
+      wolf: "a big silly toothy grin, eyes wide and goofy - comical, never menacing"
+    props: [whistle, nightcap, quilt]
+    palette_note: "Interior; same warm lamplight, a little more contrast for the action."
+    expression: "scared, the way a picture-book child is scared (not horror): eyes wide open, eyebrows raised and drawn together in worry, mouth open in a small gasp, leaning back - no smile"
+    must_be_visible: ["hero face", "wolf", "quilt", "whistle"]
+
+  - page: 12
+    layout: s12_treasure_close
+    title: "The silver whistle"
+    text: "{name} put the silver whistle to {their} lips and blew with all {their} might. Wheeeeee!"
+    caption: >-
+      Close on the hero child blowing the silver whistle, cheeks puffed.
+      Through the open window, startled birds burst up from the windowsill
+      into the sky.
+    plate_prompt: >-
+      Medium close-up background inside the cottage: the window on the right
+      is flung open to the green hillside, its curtains blowing outward, and a
+      few small birds burst up from the windowsill into the sky. A simple,
+      dim room behind, painted crisply in the same style (no blur). Leave the
+      center-left empty where a figure seen chest-up would be. Keep the top
+      fifth simple: plain wall and beams, painted right to the top edge.
+    hero_instruction: >-
+      Insert the hero child chest-up at center-left, three-quarter view
+      toward the open window, lifting the small silver whistle (about the
+      length of a finger) that hangs on its red ribbon round the neck to the
+      lips with both hands - the ribbon still round the neck, and it is the
+      only whistle in the picture. Cheeks puffed, eyes squeezed with effort.
+      Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: []
+    props: [whistle]
+    palette_note: "Interior; bright light from the open window on the face, rest of the room soft."
+    expression: "determined, full of effort: cheeks puffed, eyes squeezed nearly shut, brows drawn down"
+    must_be_visible: ["hero face", "whistle", "open window", "birds"]
+
+  - page: 13
+    layout: s13_escape_action
+    title: "Round and round"
+    text: "Round and round the table ran {name}. The wolf tripped on Grandma's nightdress. Flump!"
+    caption: >-
+      The hero child runs around the little table. Behind, the wolf has
+      tripped and flopped flat on his face, tangled in the nightdress and
+      quilt.
+    art_caption: >-
+      One single moment: the wolf already lies flopped flat on his tummy on
+      the floor at the left, tangled in one of Grandma's long nightdresses and
+      the quilt, dazed, his one nightcap askew on his head. The hero child
+      runs round the little table at center-right. The wolf appears only
+      once - lying on the floor, never also standing, tripping or running.
+    plate_prompt: >-
+      Medium-wide view of the cottage room on a diagonal: a round wooden table
+      at center with the basket on it, a chair tipped over. On the left, the
+      wolf lies flopped on his tummy, tangled in a long nightdress and quilt,
+      looking dazed, nightcap askew. He is the only wolf in the picture - not
+      also shown standing, tripping or running. Leave an empty space center-right beside
+      the table where a small person would run. Keep the top fifth as plain
+      beams.
+    hero_instruction: >-
+      Insert the hero child mid-run at center-right, three-quarter view
+      moving right, glancing back at the wolf with an alarmed, determined
+      face: eyes wide, eyebrows up, mouth open, no smile. Cape flaring.
+      Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [wolf]
+    expressions:
+      wolf: "dazed and flustered: eyes spinning or crossed, mouth open in a surprised 'oof', ears drooping - NOT smiling or grinning"
+    props: [basket, nightcap, quilt]
+    palette_note: "Interior; warm light, playful mood."
+    expression: "alarmed but determined: eyes wide, eyebrows up, mouth open, running hard - no smile, no giggle"
+    must_be_visible: ["hero face", "wolf tangled", "table", "basket"]
+
+  - page: 14
+    layout: s14_second_marvel
+    speaker: grandmother
+    title: "Grandma's broom"
+    text: "Out of the wardrobe burst Grandma, waving her broom. Shoo, you rascal! Shoo!"
+    speech:
+      - {who: grandmother, says: "Shoo, you rascal! Shoo!"}
+    caption: >-
+      Grandma bursts out of the wardrobe brandishing a broom, spectacles
+      flashing. The hero child stands alongside, cheering. The wolf scrambles
+      toward the door.
+    art_caption: >-
+      Framed tall from the floor up to the ceiling: Grandma has just leapt
+      out of the tall open wardrobe and stands in front of it, waving her one
+      broom high, spectacles flashing - Grandma appears
+      once, outside the wardrobe. The hero child stands alongside, cheering.
+      On the far right, the wolf scrambles toward the open door to escape,
+      his back half-turned to Grandma and her broom - fleeing away from her,
+      never toward her.
+    plate_prompt: >-
+      The painted wardrobe doors on the right fly wide open; leave an empty
+      space in front of them where a grown-up would leap out. Behind on the
+      far right, the wolf scrambles toward the open door, ears flat. Leave
+      another empty space on the left-center where a small person would stand
+      cheering. Keep the top fifth plain.
+    hero_instruction: >-
+      Insert the hero child left-center, three-quarter view toward Grandma,
+      both fists raised in a cheer, a big delighted smile. Wearing
+      hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [grandmother, wolf]
+    expressions:
+      grandmother: "fierce but funny: eyebrows drawn down, mouth open in a shout, spectacles flashing"
+      wolf: "panicked and flustered: eyes wide, ears flat, mouth open in a yelp - no grin"
+    props: [wardrobe, broom]
+    palette_note: "Interior; a burst of bright light from the open wardrobe and the door."
+    expression: "delighted and cheering: a big open smile"
+    must_be_visible: ["hero face", "Grandma's face", "broom", "wolf"]
+
+  - page: 15
+    layout: s15_chase_action
+    title: "Out into the garden"
+    text: "{name} and Grandma ran out into the garden, with the wolf stumbling behind them, the nightcap over his eyes."
+    caption: >-
+      The hero child runs toward the viewer through Grandma's garden, Grandma
+      just behind with her broom. Further back, the wolf stumbles out of the
+      door with the nightcap pulled over his eyes.
+    art_caption: >-
+      Framed tall: the garden path runs from the bottom edge up toward the
+      cottage. The hero child runs toward the viewer at the bottom of the
+      path, Grandma just behind with her broom, and further up the frame, by
+      the cottage door, the wolf stumbles out with the nightcap pulled over
+      his eyes. Sky with soft clouds across the top.
+    plate_prompt: >-
+      A cottage garden: flower beds, a path to the gate in the foreground.
+      Leave an empty space on the path a little behind center where a grown-up
+      would run. Further back by the cottage door, the wolf stumbles with the
+      nightcap pulled down over his eyes, paws out in front of him. Leave an
+      empty space in the lower-center foreground where a small person would
+      run toward the viewer. The top fifth is open sky painted right to the
+      top edge - soft blue with a few drifting clouds, never a blank strip.
+    hero_instruction: >-
+      Insert the hero child running toward the viewer in the lower-center,
+      three-quarter view, a breathless, determined face: eyes wide, mouth
+      open as if panting, no calm smile. Cape streaming. Wearing hero_outfit,
+      hood DOWN on the shoulders, never up over the head.
+    characters: [grandmother, wolf]
+    expressions:
+      grandmother: "determined, puffing as she runs: eyebrows drawn down, mouth open"
+      wolf: "blinded and flustered: the nightcap over his eyes, mouth open in a startled yelp - no grin"
+    props: [nightcap, broom, cottage]
+    palette_note: "Late afternoon; warm golden light, long shadows across the garden."
+    expression: "breathless and determined: eyes wide, mouth open as if panting, eyebrows up - not a calm smile"
+    must_be_visible: ["hero face", "Grandma", "wolf", "garden path"]
+
+  - page: 16
+    layout: s16_vertical_turn
+    speaker: woodcutter
+    title: "The woodcutter"
+    text: "There at the gate stood the woodcutter, as tall as a tree. I heard your whistle! he said."
+    speech:
+      - {who: woodcutter, says: "I heard your whistle!"}
+    caption: >-
+      The tall woodcutter stands at the garden gate, his covered axe on his
+      shoulder. The hero child runs to him; Grandma follows behind.
+    plate_prompt: >-
+      Tall vertical composition: the woodcutter stands at the garden gate on
+      the right, filling the frame from near the bottom to near the top, a
+      kind, strong face, axe with a leather-covered blade resting on his
+      shoulder, one hand held out. Leave an empty space a little behind on the
+      left where a grown-up would stand catching their breath, and an empty
+      space center-left in the middle band where a small person would run to
+      him. Keep the bottom fifth as plain grass and path.
+    hero_instruction: >-
+      Insert the hero child center-left, three-quarter view, running up and
+      reaching for the woodcutter's hand, a relieved, shining smile. Wearing
+      hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [woodcutter, grandmother]
+    expressions:
+      woodcutter: "kind and reassuring: a warm smile"
+      grandmother: "out of breath but relieved: a tired smile"
+    props: [axe, cottage]
+    palette_note: "Late afternoon; warm low sun behind the woodcutter giving a strong friendly rim light."
+    expression: "relieved and happy: a shining smile"
+    must_be_visible: ["hero face", "woodcutter face", "gate", "Grandma"]
+
+  - page: 17
+    layout: s17_ground_action_two_shot
+    title: "A great big shout"
+    text: "The woodcutter gave a great big shout. The wolf yelped, and ran as fast as his legs could carry him."
+    caption: >-
+      The hero child holds the woodcutter's hand as he gives a mighty shout.
+      The wolf dashes away down the hill, the nightcap flying off his head.
+    art_caption: >-
+      The hillside just outside the garden gate, the cottage behind. The hero
+      child holds the woodcutter's hand as he gives a mighty shout. A little
+      way down the hill, the wolf dashes AWAY from them: seen from behind or
+      in side view, his back and tail toward the woodcutter, the hero child
+      and the cottage, running downhill away from the gate - never toward
+      them, never facing the cottage - ears back, the frilly nightcap flying
+      off his head.
+    plate_prompt: >-
+      The hillside just outside the garden gate, the cottage behind. The
+      woodcutter stands right of center, hands cupped around his mouth giving
+      a big shout, his covered axe leaning on the gatepost. At center, a
+      little way down the hill, the wolf dashes AWAY from the gate, the
+      woodcutter and the cottage: seen from behind or in side view, his back
+      and tail toward them, running downhill away - never toward them -
+      ears back, the frilly nightcap flying off his head. Leave an empty
+      space left of center beside the woodcutter where a small person would
+      stand holding his hand. Keep the top fifth as calm sky.
+    hero_instruction: >-
+      Insert the hero child beside the woodcutter, three-quarter view, one
+      hand holding his, the other pointing after the wolf, a brave, happy
+      face. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [woodcutter, wolf]
+    expressions:
+      woodcutter: "giving a great big shout: mouth wide open, eyebrows raised, hands cupped round his mouth"
+      wolf: "frightened yelp: ears back, eyes wide, mouth open in a yelp as he runs - no grin"
+    props: [nightcap, axe]
+    palette_note: "Late afternoon; warm low sun from the left, long shadows down the hill."
+    expression: "brave and happy: a confident grin"
+    must_be_visible: ["hero face", "woodcutter", "wolf running away from them, down the hill", "nightcap"]
+
+  - page: 18
+    layout: s18_aftermath_wide
+    title: "Far, far away"
+    text: "Over the hills and far away ran the wolf, and he never came back. {name} gave Grandma the biggest hug."
+    caption: >-
+      Wide view of the hills at sunset. The wolf is a tiny figure running
+      over the far hills. By the cottage gate, the hero child hugs Grandma
+      while the woodcutter smiles.
+    art_caption: >-
+      Wide sunset view from the hilltop by the cottage gate: rolling hills
+      and forest stretch away into the distance. The wolf is only a TINY
+      figure near the horizon, on the farthest hill, seen from behind - his
+      back and tail toward the viewer and the cottage - running away over the
+      top of that far hill, AWAY from the cottage; he is never on the near
+      hill, never large, never facing or running toward the cottage. In the
+      lower-left by the cottage gate, the hero child hugs Grandma while the
+      woodcutter smiles.
+    plate_prompt: >-
+      Wide sunset view from the hilltop: rolling hills and forest stretch
+      away into the distance. Near the horizon, on the farthest hill, the
+      wolf is a tiny figure seen from behind - back and tail toward the
+      viewer and the cottage - running away over the top of that far hill,
+      away from the cottage; nothing of him is on the near hill. In the
+      lower-left by the cottage gate, the woodcutter stands smiling; leave an
+      empty space beside him where a kneeling grown-up and a small person
+      would hug. Keep the bottom-right as plain open grass.
+    hero_instruction: >-
+      Insert the hero child small in frame, hugging Grandma in the
+      lower-left, face turned toward the viewer in three-quarter, eyes closed
+      in a happy smile. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [grandmother, woodcutter, wolf]
+    expressions:
+      grandmother: "happy: eyes closed in a warm smile, hugging back"
+      woodcutter: "kind: a warm smile"
+    props: [cottage]
+    palette_note: "Sunset; orange and pink sky, warm low light."
+    expression: "happy and relieved: eyes closed in a warm smile"
+    must_be_visible: ["hero face", "Grandma", "woodcutter", "wolf as a tiny figure on the farthest hill, running away", "cottage gate"]
+
+  - page: 19
+    layout: s19_garden_planting
+    title: "Planting the meadow flowers"
+    text: "Next morning, {name} and Grandma planted the meadow flowers by the door, so the garden would bloom all summer long."
+    caption: >-
+      In Grandma's garden in the morning, the hero child kneels and plants the
+      wildflowers from the meadow in the soil by the green door. Grandma
+      kneels alongside with a little trowel.
+    plate_prompt: >-
+      Medium close-up of the flower bed beside the round green cottage door in
+      fresh morning light: dark soil at center with a small hole, the
+      wildflower bunch from the meadow lying ready beside it, and a little
+      trowel on the soil at the right. Leave empty spaces where two people
+      would kneel: one center-left with room for hands in the soil, one on the
+      right by the trowel. Keep the top fifth as soft plain morning sky.
+    hero_instruction: >-
+      Insert the hero child kneeling center-left, three-quarter view, both
+      hands patting the soil around a planted flower, face visible above the
+      hands with a proud, gentle smile. Wearing hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [grandmother]
+    expressions:
+      grandmother: "gentle and proud: a soft smile"
+    props: [flowers, cottage]
+    palette_note: "Fresh morning; cool, clear light, dew on the petals, hopeful."
+    expression: "proud and gentle: a soft smile"
+    must_be_visible: ["hero face", "Grandma", "flowers", "soil"]
+
+  - page: 20
+    layout: s20_finale_home
+    title: "Tea and cake"
+    text: "Then Mother came up the hill, and everyone sat down to tea and cake. Safe and sound, together."
+    caption: >-
+      Inside Grandma's cosy cottage, the hero child sits at the center of the
+      table with the mother, Grandma and the woodcutter, sharing tea and cake.
+      The meadow flowers stand in a jug.
+    plate_prompt: >-
+      A cottage room, warm and cosy in lamplight: a round table set with a
+      teapot, cups, the honey jar and a cake. The woodcutter stands behind the
+      table, hat in hand, laughing. A jug of meadow flowers on the table, the
+      empty basket on a chair. Leave three empty seats at the table where
+      people would sit: the center seat facing the viewer, the seat on the
+      right and the seat on the left. Keep the lower fifth as plain tablecloth
+      edge.
+    hero_instruction: >-
+      Insert the hero child seated at the center of the table, full face to
+      the viewer, a big happy smile, holding up a slice of cake. Wearing
+      hero_outfit, hood DOWN on the shoulders, never up over the head.
+    characters: [mother, grandmother, woodcutter]
+    expressions:
+      mother: "happy: a big warm smile"
+      grandmother: "happy: a big warm smile"
+      woodcutter: "laughing: a big open smile"
+    props: [flowers]
+    palette_note: "Evening; warm lamplight and firelight, the cosiest page in the book."
+    expression: "happy: a big smile"
+    must_be_visible: ["hero face", "mother face", "Grandma face", "woodcutter face", "cake", "flowers"]
+
+about_me:
+  layout: about_me
+  heading: "About {name}"
+  hero_instruction: >-
+    The hero child, waist-up, full face, smiling at the viewer, wearing
+    hero_outfit with the hood DOWN on the shoulders, never up over the head, holding the basket with wildflowers.
+  background_note: "Soft meadow-green background with a few wildflowers at the edges."

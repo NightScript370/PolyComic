@@ -1,0 +1,339 @@
+# PolyComic shared page template
+# ---------------------------------------------------------------------------
+# One 20-slot template shared by every story (currently Jack and the Beanstalk
+# and Little Red Riding Hood) plus an About Me back page.
+#
+# Conventions
+#   * Page is portrait. All boxes are normalized to the page: origin top-left,
+#     x/y/w/h in 0..1 (y grows downward).
+#   * allowed_text_zones is an ORDERED preference list. The PDF layer tries the
+#     first zone; if the vision check reports a face or a must_be_visible object
+#     inside that box it falls back to the next zone.
+#   * quiet_zone_instruction is appended to the image-edit instruction so the
+#     model keeps the first-preference text zone visually simple. It is
+#     style-neutral (style text is injected later from the locked style string).
+#   * The image model never draws text; text is overlaid in the PDF layer.
+#   * hero_framing values: full_face | three_quarter | profile | back |
+#     small_in_frame. Because the vision model checks likeness on every page,
+#     no slot uses a pure back view: "back" moments are written as
+#     three_quarter with the hero glancing over a shoulder.
+# ---------------------------------------------------------------------------
+
+version: 1
+
+page:
+  orientation: portrait
+  aspect_ratio: "3:4"
+  coordinate_system: "normalized, origin top-left, y down"
+  safe_margin: 0.05          # keep text this far from every page edge
+  bleed_mm: 3
+
+art_box_defaults: &full_bleed
+  mode: full_bleed
+  box: {x: 0.0, y: 0.0, w: 1.0, h: 1.0}
+
+# Reusable zone boxes
+zones:
+  top:    &zone_top    {x: 0.06, y: 0.05, w: 0.88, h: 0.18}
+  middle: &zone_middle {x: 0.10, y: 0.41, w: 0.80, h: 0.16}
+  bottom: &zone_bottom {x: 0.06, y: 0.75, w: 0.88, h: 0.19}
+
+slots:
+
+  - id: s01_home_two_shot
+    slot: 1
+    composition: "medium two-shot, interior at home; hero and parent facing each other at mid-frame, a doorway or window behind showing the outside world"
+    hero_framing: full_face
+    hero_position: "left-center, upper two-thirds of the frame"
+    allowed_text_zones:
+      - {zone: bottom, box: *zone_bottom}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the lower third of the picture quiet and simple: plain floorboards or floor in soft even light, no props, no faces, no busy pattern."
+    art_box: *full_bleed
+    story_use:
+      jack: "the empty cupboard - Jack and his mother in the bare kitchen, Milky-White seen through the open door"
+      red: "the basket - Red and her mother at the kitchen table packing the basket for Grandma"
+
+  - id: s02_path_encounter
+    slot: 2
+    composition: "medium-wide exterior on a road or path; hero meets a stranger, the two figures in the lower-middle band, open sky or a gap of sky above"
+    hero_framing: three_quarter
+    hero_position: "left of center, mid-ground, facing the stranger on the right"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture as calm open sky with only soft, faint clouds; nothing tall reaches into it."
+    art_box: *full_bleed
+    story_use:
+      jack: "the trade - the old man offers five coloured beans on the road to market"
+      red: "the stranger - the wolf greets Red on the forest path"
+
+  - id: s03_dusk_consequence
+    slot: 3
+    composition: "wide exterior at dusk or deep shade; the consequence of the hero's choice happens in the upper-middle of the frame while the hero watches from a threshold (doorway or path edge); darker palette than slots 1-2"
+    hero_framing: three_quarter
+    hero_position: "right third, mid-ground, at a doorway or the edge of the path, looking toward the action"
+    allowed_text_zones:
+      - {zone: bottom, box: *zone_bottom}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the lower fifth of the picture as dark, simple grass or ground in shadow, low contrast, with no objects in it."
+    art_box: *full_bleed
+    story_use:
+      jack: "out the window - Mother throws the beans into the garden at dusk; Jack watches from the doorway"
+      red: "the shortcut - the wolf slips away down the shady shortcut; Red watches from the path"
+
+  - id: s04_wonder_wide
+    slot: 4
+    composition: "wide establishing shot of something wonderful revealed by new light; the wonder fills the center and rises toward the top; hero small at the bottom-left looking up or out"
+    hero_framing: small_in_frame
+    hero_position: "lower-left, small, face turned up toward the wonder (face still visible)"
+    allowed_text_zones:
+      - {zone: top, box: {x: 0.50, y: 0.05, w: 0.44, h: 0.22}}
+      - {zone: bottom, box: {x: 0.40, y: 0.78, w: 0.54, h: 0.17}}
+    quiet_zone_instruction: "Keep the top-right corner of the picture as soft, plain sky with gentle light; the main subject stays left of center."
+    art_box: *full_bleed
+    story_use:
+      jack: "the beanstalk at dawn - a giant beanstalk climbs into the clouds"
+      red: "the flower meadow - sunlight bursts into a meadow full of flowers"
+
+  - id: s05_vertical_ascent
+    slot: 5
+    composition: "tall vertical journey; a climbing line (stalk, path, steps) runs from the bottom of the frame to the top; hero mid-frame on the line, moving upward"
+    hero_framing: three_quarter
+    hero_position: "center, middle band, climbing upward and glancing back over the shoulder toward the viewer"
+    allowed_text_zones:
+      - {zone: bottom, box: *zone_bottom}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the bottom fifth of the picture simple: distant ground or soft mist far below, no faces or important objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "climbing the beanstalk"
+      red: "climbing the winding hill path to Grandma's cottage"
+
+  - id: s06_arrival_wide
+    slot: 6
+    composition: "wide establishing shot of the destination; the new place dominates the upper two-thirds; hero small in the foreground looking at it"
+    hero_framing: small_in_frame
+    hero_position: "lower-left foreground, small, three-quarter turned toward the destination"
+    allowed_text_zones:
+      - {zone: bottom, box: {x: 0.40, y: 0.77, w: 0.54, h: 0.18}}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the bottom-right of the picture as plain, flat ground (cloud floor, grass or path) with no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "the castle in the clouds"
+      red: "Grandma's cottage on the hill"
+
+  - id: s07_threshold_meeting
+    slot: 7
+    composition: "medium shot at a large doorway; hero on one side of the threshold, the person inside on the other; the door frame forms a strong vertical"
+    hero_framing: three_quarter
+    hero_position: "left third, standing at the threshold, facing into the doorway"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture simple: plain wall, door lintel or sky, no faces and no detailed carving."
+    art_box: *full_bleed
+    story_use:
+      jack: "the giant's wife at the enormous door"
+      red: "the cottage door - a deep voice calls from the bed inside"
+
+  - id: s08_interior_secret
+    slot: 8
+    composition: "medium-wide interior; a big room with one secret element (a hiding place or a hidden helper) at the side; the hero placed near the secret"
+    hero_framing: three_quarter
+    hero_position: "right third, mid-ground, near the hiding place"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture as plain, softly lit wall or ceiling beams with no faces or objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "hiding in the giant's cupboard"
+      red: "Grandma peeps from the wardrobe and puts a finger to her lips"
+
+  - id: s09_low_angle_reveal
+    slot: 9
+    composition: "low-angle reveal; the big character looms large in the upper and middle frame, seen from below; hero small in a lower corner, in profile, looking up"
+    hero_framing: profile
+    hero_position: "lower-left corner, small to medium, profile facing right and up"
+    allowed_text_zones:
+      - {zone: bottom, box: {x: 0.40, y: 0.77, w: 0.54, h: 0.18}}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the bottom-right of the picture as plain floor in soft shadow, no objects and no faces."
+    art_box: *full_bleed
+    story_use:
+      jack: "Fee-fi-fo-fum - the giant stomps in"
+      red: "What big ears you have"
+
+  - id: s10_closeup_reaction
+    slot: 10
+    composition: "close-up of the hero's face reacting; face fills the middle of the frame; a hint of what they are looking at in the soft background"
+    hero_framing: full_face
+    hero_position: "center, face in the middle band (eyes a little above the center, chin well above the bottom fifth, top of the head below the top fifth)"
+    # Top first: a full-face close-up tends to reach down into the bottom fifth (chin,
+    # shoulders), so the text goes over the soft background above the head.
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Frame it as a TALL portrait close-up, not a wide face crop: the hero is seen from a little above the head down to the waist, the head in the middle band and the shoulders and upper body continuing down to the bottom edge. Above the head, the top fifth is dim interior (wall, beams or shadowy room) painted in detail and crisply in the same style as the rest - not blurred or smeared - with no faces, eyes or objects in it; the chin stays well above the bottom fifth."
+    art_box: *full_bleed
+    story_use:
+      jack: "Jack peeks out, wide-eyed"
+      red: "What big eyes you have"
+
+  - id: s11_tense_two_shot
+    slot: 11
+    composition: "tall two-shot with the big character on one side and the hero on the other, both full height between floor and ceiling; tension in the space between them"
+    hero_framing: profile
+    hero_position: "left third, mid-ground, profile facing right toward the big character"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Frame it tall: the floor fills the bottom fifth, both characters stand or rise full height in the middle, and the top fifth is the room's upper wall and shadowy ceiling beams, painted in detail in the same style, with no faces and no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "the giant counts his eggs and nods off to sleep"
+      red: "What big teeth you have"
+
+  - id: s12_treasure_close
+    slot: 12
+    composition: "medium close-up of the hero holding or using a special object or creature, held up near the face so both read clearly"
+    hero_framing: three_quarter
+    hero_position: "center-left, chest-up, the object at center-right"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Frame it tall: the hero is seen from the head down to the waist or knees with the table top or ground in the lower third, and the top fifth is a simple dim background above the head (upper wall, beams or sky), painted crisply in the same style as the rest - not blurred or smeared."
+    art_box: *full_bleed
+    story_use:
+      jack: "the hen that lays golden eggs"
+      red: "Red blows her silver whistle"
+
+  - id: s13_escape_action
+    slot: 13
+    composition: "dynamic action across the frame on a diagonal; hero moving left-to-right in the middle band, the big character behind or beside, slowed or tangled"
+    hero_framing: three_quarter
+    hero_position: "center-right, mid-ground, mid-stride"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture simple: plain wall, beams or sky with no faces and no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "tiptoeing away with the hen"
+      red: "round and round the table"
+
+  - id: s14_second_marvel
+    slot: 14
+    composition: "medium two-shot with a second marvel or ally entering the story; the new element is bright and draws the eye"
+    hero_framing: three_quarter
+    hero_position: "left third, mid-ground, turned toward the new element"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Frame it tall: the floor fills the bottom fifth, the characters stand full height in the middle, and the top fifth is the softly lit upper wall and ceiling of the room, painted in detail in the same style, with no faces and no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "the singing harp calls out"
+      red: "Grandma bursts out of the wardrobe with her broom"
+
+  - id: s15_chase_action
+    slot: 15
+    composition: "outdoor chase; hero running toward the viewer on a diagonal in the lower-middle, the pursuer bigger and further back, comically slowed"
+    hero_framing: three_quarter
+    hero_position: "lower-center, foreground, running toward the viewer"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Frame it tall: the path or road runs from the bottom edge up into the distance, the pursuer further up the frame, and the top fifth is open sky with soft clouds, with no faces or objects reaching into it."
+    art_box: *full_bleed
+    story_use:
+      jack: "the giant chases Jack across the clouds"
+      red: "out into the garden, the wolf stumbling behind"
+
+  - id: s16_vertical_turn
+    slot: 16
+    composition: "tall vertical composition; a strong vertical element (stalk, tall figure, gatepost) runs top to bottom; hero moving along or toward it"
+    hero_framing: three_quarter
+    hero_position: "center or center-left, middle band"
+    allowed_text_zones:
+      - {zone: bottom, box: *zone_bottom}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the bottom fifth of the picture as simple ground (grass, garden path) with no objects and no faces."
+    art_box: *full_bleed
+    story_use:
+      jack: "sliding down the beanstalk"
+      red: "the woodcutter appears at the garden gate"
+
+  - id: s17_ground_action_two_shot
+    slot: 17
+    composition: "medium two-shot on the ground; hero and a grown-up helper act together; the decisive action happens at center"
+    hero_framing: three_quarter
+    hero_position: "left of center, mid-ground, beside the grown-up"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture as calm sky or plain foliage, no faces and no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "Chop, chop, chop! - Jack and his mother chop the beanstalk"
+      red: "the woodcutter's great shout sends the wolf running"
+
+  - id: s18_aftermath_wide
+    slot: 18
+    composition: "wide shot of the big change; landscape and sky dominate; hero and friends small, safe, watching"
+    hero_framing: small_in_frame
+    hero_position: "lower-left, small, beside the other characters, faces turned toward the viewer or the event"
+    allowed_text_zones:
+      - {zone: bottom, box: {x: 0.40, y: 0.77, w: 0.54, h: 0.18}}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the bottom-right of the picture as plain open ground with no objects."
+    art_box: *full_bleed
+    story_use:
+      jack: "the beanstalk tumbles; the giant stays up in the clouds"
+      red: "the wolf runs far away over the hills; Red hugs Grandma"
+
+  - id: s19_garden_planting
+    slot: 19
+    composition: "medium close-up outdoors in a garden; hands in the soil at center, hero kneeling with a grown-up beside; fresh morning light"
+    hero_framing: three_quarter
+    hero_position: "center-left, kneeling, face visible above the hands"
+    allowed_text_zones:
+      - {zone: top, box: *zone_top}
+      - {zone: bottom, box: *zone_bottom}
+    quiet_zone_instruction: "Keep the top fifth of the picture as soft, plain morning sky or a simple hedge, painted crisply in the same style - not blurred or smeared."
+    art_box: *full_bleed
+    story_use:
+      jack: "Jack plants the last bean"
+      red: "Red plants the meadow flowers in Grandma's garden"
+
+  - id: s20_finale_home
+    slot: 20
+    composition: "warm wide-medium group shot at a table at home; everyone together, safe and happy; the hero at the center facing the viewer"
+    hero_framing: full_face
+    hero_position: "center, upper-middle band, facing the viewer and smiling"
+    allowed_text_zones:
+      - {zone: bottom, box: *zone_bottom}
+      - {zone: top, box: *zone_top}
+    quiet_zone_instruction: "Keep the lower fifth of the picture as a plain tablecloth edge or floor in soft warm light, no objects and no faces."
+    art_box: *full_bleed
+    story_use:
+      jack: "home again - a full table, the hen, the harp and Milky-White"
+      red: "tea and cake - everyone safe together"
+
+about_me:
+  id: about_me
+  composition: "back-page portrait: the hero, in their story outfit, waist-up and smiling, in a rounded frame in the upper half of the page against a soft scene-coloured background"
+  hero_framing: full_face
+  hero_position: "upper half, centered inside a rounded portrait frame"
+  portrait_box: {x: 0.20, y: 0.07, w: 0.60, h: 0.42}
+  allowed_text_zones:
+    - {zone: bottom, box: {x: 0.08, y: 0.55, w: 0.84, h: 0.38}}
+  text_fields:            # filled in by the parent in the order form
+    - {id: name, label: "My name is"}
+    - {id: age, label: "I am", suffix: "years old"}
+    - {id: favourite_things, label: "My favourite things"}
+    - {id: dedication, label: "This book is for", optional: true}
+  quiet_zone_instruction: "Keep the lower half of the picture as a plain, soft, evenly lit background with no objects and no faces."
+  art_box: *full_bleed

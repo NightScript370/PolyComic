@@ -1,0 +1,891 @@
+# Jack and the Beanstalk - PolyComic story definition
+# The uploaded child plays the role of Jack. Style text is NOT included here;
+# it is injected later from the locked style string. Every description below is
+# style-neutral. Layout ids refer to app/template/layouts.yaml.
+#
+# Text placeholders (page `text`, subtitle and about_me strings only):
+#   {name} {they} {them} {their} {theirs} {themself} {They} {Their}
+#   verb helpers {is} {was} {has} {does}
+#   (he/she -> is/was/has/does, they -> are/were/have/do)
+# Lower-case "she"/"he"/"they" written literally in text refer to other
+# characters (or a group) and are NOT substituted.
+# Art fields (caption, plate_prompt, hero_instruction) call the hero
+# "the hero child" so they stay name- and gender-neutral.
+# The global "no text, letters, symbols or signage" rule is added by the prompt
+# builder and is not repeated per page.
+
+id: jack
+title: "Jack and the Beanstalk"
+hero_role: jack
+hero_role_label: "as Jack"
+subtitle: "starring {name} as Jack"
+age_range: "4-8"
+source: "public-domain English folk tale; original wording"
+
+hero_outfit:
+  id: jack_outfit
+  description: >-
+    A patched oatmeal-coloured linen tunic with a brown leather belt, moss-green
+    trousers rolled once at the ankle, sturdy brown lace-up boots, and a small
+    faded-blue cloth satchel worn across the body on a long strap.
+  continuity: >-
+    Identical on every page: same colours, same patches (a square tan patch on
+    the left elbow and a round green patch on the right knee), satchel always on
+    the left hip. Hair and face come only from the hero reference photo.
+
+# Props are the single source of truth for objects that recur across pages. A page
+# lists the ones it shows (`props: [beans]`); the image prompt gets a "Props (draw
+# exactly as described, same on every page)" block and the grader checks the same
+# text. Captions and must_be_visible must not contradict them. An unknown id fails
+# loading. Descriptions say what the object looks like, not where it is on a page.
+props:
+  beans:
+    description: "exactly five small magic beans, each about the size of a fingertip - one red, one yellow, one green, one blue, one purple; five beans in total, never more"
+    states:
+      - pages: [2]
+        description: "all five beans lie together in the old man's open palm - one of each colour, none anywhere else"
+      - pages: [3]
+        description: "exactly four beans fly through the air in ONE clear arc from the window toward the garden, well apart from each other - one red, one yellow, one green, one blue, each colour once - none on the windowsill, none in a hand, none on the grass; exactly one purple bean lies on the doorstep right by the hero child's boot, clearly visible; five beans in total, no others anywhere"
+  last_bean: "exactly one small purple magic bean, about the size of a fingertip, smooth and shiny - the purple one of the five magic beans; no other beans"
+  beanstalk:
+    description: "a very thick, twisting green stalk with heart-shaped leaves as big as umbrellas and curling tendrils"
+    count: 1
+    # What the beanstalk looks like depends on the page (whole until 16).
+    states:
+      - pages: [17]
+        description: "being chopped down: a deep wedge-shaped notch is cut into the thick stalk near its base, pale green-white inner wood showing, wood chips flying from the cut, and the axe blade bitten deep into the notch; the stalk still stands"
+      - pages: [18]
+        description: "fallen: the whole stalk lies flat on the ground in ONE STRAIGHT line across the fields, like a felled tree trunk - its clean cut end lies on the ground right next to the short chopped stump in the garden, its leafy top far away across the fields; leaves crushed flat under it and a puff of dust where it landed. An arched, bent, curved-up or still-standing beanstalk is wrong"
+      - pages: [19, 20]
+        description: "chopped down: only a short, clean stump is left in the garden; the fallen stalk lies flat and straight across the fields far away"
+  stump:
+    description: "the short, clean chopped stump of the beanstalk, sticking out of the garden soil"
+    count: 1
+  castle:
+    description: "the giant's castle - the same building on every page: an enormous pale-grey stone castle with three round towers, blue pointed cone roofs, a huge arched wooden door and small arched windows, standing on a road of firm white cloud. A castle of another colour, shape or roof is wrong"
+    count: 1
+  cottage:
+    description: "the family's cottage - the same house on every page: a small, humble one-storey cottage with rough whitewashed stone walls, a shaggy brown thatched roof, a crooked stone chimney, small square windows with brown wooden shutters, a plain brown plank front door and a low wooden fence round a little vegetable garden. A cottage with tiles, a different roof, walls or door is wrong"
+    count: 1
+  golden_egg: "each golden egg is exactly the size and shape of a hen's egg, smooth and shining gold (the scene says how many)"
+  axe:
+    description: "a plain wood-cutting axe with a worn wooden handle"
+    count: 1
+
+# Family variants: the pipeline picks ONE variant id (fam_a..fam_d) per book,
+# closest to the child's photo, and uses it for every family member.
+family_variant_ids: [fam_a, fam_b, fam_c, fam_d]
+
+characters:
+  - id: mother
+    name: "Mother"
+    family: true
+    age: 30
+    description: >-
+      A young mother around 30 years old, slim, with a kind, gentle, youthful
+      face and smooth skin - no grey hair, no wrinkles. Her clothes are old and
+      well-worn, but she is young: a faded blue headscarf tied back behind her
+      hair bun with the front of her hair showing, a long, much-mended
+      dusty-blue dress with a cream apron, sleeves rolled to the elbow.
+    size: >-
+      A grown-up woman, about one and a half times the hero child's height (the
+      child's head reaches about her chest).
+    variants:
+      - {id: fam_a, skin_tone: "fair, light peach", hair: "straight honey-blonde hair in a loose bun"}
+      - {id: fam_b, skin_tone: "light olive", hair: "wavy dark-brown hair in a loose bun"}
+      - {id: fam_c, skin_tone: "warm medium brown", hair: "curly black hair gathered in a loose bun"}
+      - {id: fam_d, skin_tone: "deep brown", hair: "coily black hair gathered in a round puff"}
+    pages: [1, 3, 16, 17, 18, 19, 20]
+
+  - id: milky_white
+    name: "Milky-White"
+    description: >-
+      A gentle cream-white dairy cow with a pink nose, a soft brown patch
+      around her left eye, short curved horns, and a small brass bell on a rope
+      collar with a long rope lead.
+    size: >-
+      A full-size cow: her back is about level with the hero child's
+      shoulders, and she is much longer than the child is tall.
+    ref_priority: 1
+    pages: [1, 2, 20]
+
+  - id: old_man
+    name: "the old man"
+    description: >-
+      A small, stooped old man with a long white beard, bushy white eyebrows
+      and twinkly eyes, wearing a patched plum-purple cloak with the hood down
+      and leaning on a crooked wooden walking stick.
+    size: >-
+      Small and stooped: only about a head taller than the hero child.
+    ref_priority: 0
+    pages: [2]
+
+  - id: giants_wife
+    name: "the giant's wife"
+    description: >-
+      A very tall, kind woman with rosy cheeks and grey hair in a big round
+      bun, wearing a lavender dress with long sleeves, a pink apron with
+      little flowers and brown clogs, holding a huge wooden spoon. Always the
+      same clothes.
+    size: >-
+      A giant, far taller than the hero child - at least about two and a half
+      times the child's height, often cut off by the frame indoors (only part
+      of her may fit). The child's head reaches no higher than about her knee,
+      and her hand is bigger than the child's head.
+    ref_priority: 0
+    pages: [7, 8]
+
+  - id: giant
+    name: "the giant"
+    description: >-
+      An enormous, round-bellied giant with a bushy ginger beard, a bald shiny
+      head, a big round nose and wild eyebrows, wearing - always the same, on
+      every page - a bottle-green waistcoat with brass buttons over a
+      mustard-yellow shirt with rolled sleeves, brown knee breeches, a wide
+      brown belt and big brown boots. Grumpy and silly rather than
+      frightening; never carries a weapon.
+    size: >-
+      A giant, far taller than the hero child - standing, about three to four
+      times the child's height (at least about two and a half times the
+      child's height), often cut off by the frame (only his boots, legs or head and shoulders may fit). His
+      head alone is much bigger than the child's head. Sitting at the table or
+      far away in the distance he still looks clearly like a giant, much
+      bigger than a grown-up person - never about the child's size. Each page
+      anchors his size to things in its picture ('Size on this page').
+    ref_priority: 0
+    pages: [9, 10, 11, 12, 13, 14, 15, 18]
+
+  - id: hen
+    name: "the hen"
+    description: >-
+      A plump little russet-brown hen with a bright red comb, a shiny dark eye
+      and fluffy cream chest feathers. Her eggs are shining gold.
+    size: >-
+      Small: standing, she reaches about the hero child's knee; the child can
+      carry her under one arm.
+    ref_priority: 2
+    pages: [11, 12, 13, 14, 15, 16, 17, 18, 20]
+
+  - id: harp
+    name: "the golden harp"
+    speaker_label: "Harp"
+    description: >-
+      A small golden lap harp with silver strings; the front pillar is carved
+      into the smiling face of a lady with curly hair. When it sings, its
+      strings shimmer with a soft golden glow.
+    size: >-
+      Small: about a third of the hero child's height, light enough to carry
+      under one arm.
+    ref_priority: 2
+    pages: [14, 15, 16, 17, 18, 20]
+
+pages:
+
+  - page: 1
+    layout: s01_home_two_shot
+    title: "The empty cupboard"
+    text: "{name} and {their} mother had nothing left to sell but Milky-White."
+    caption: >-
+      The hero child and their mother stand in a bare cottage kitchen beside
+      an open, empty cupboard. Through the open door behind them, Milky-White
+      the cow stands in the yard.
+    plate_prompt: >-
+      A bare, humble cottage kitchen in soft morning light: an open wooden
+      cupboard with empty shelves on the left wall, a plain table with one
+      empty bowl, a cold hearth. At the back, the cottage door is wide open
+      and Milky-White the cow stands in the sunny yard outside, fully visible
+      in the doorway. Leave two empty spaces on the bare floor where people
+      would stand facing each other: one left of center in front of the
+      cupboard, one right of center by the table. Bare floorboards across the
+      lower third.
+    hero_instruction: >-
+      Insert the hero child standing left of center facing the mother. Full
+      face toward the viewer, front-lit, eyes turned to look at the mother, a
+      small worried frown. Arms at the sides. Wearing hero_outfit. Keep the
+      hero child's head and body in the upper two-thirds of the image.
+    characters: [mother, milky_white]
+    expressions:
+      mother: "worried and sad: a gentle frown, eyes downcast toward the empty cupboard, no smile"
+    palette_note: "Morning; soft, slightly cool daylight from the doorway; muted browns and greys inside, warm sunlit yard outside."
+    expression: "worried: a small frown, eyebrows drawn together, no smile"
+    must_be_visible: ["hero face", "mother face", "empty cupboard", "Milky-White in the doorway", "open door"]
+
+  - page: 2
+    layout: s02_path_encounter
+    speaker: old_man
+    title: "The trade"
+    text: "Five magic beans, said the old man. For one cow."
+    speech:
+      - {who: old_man, says: "Five magic beans,"}
+      - {who: old_man, says: "For one cow."}
+    caption: >-
+      On a dirt road to market, the old man holds out exactly five small magic
+      beans in his open palm - one red, one yellow, one green, one blue, one
+      purple - each bean about the size of a fingertip. The hero child holds
+      Milky-White's rope.
+    plate_prompt: >-
+      A winding dirt road through green fields on the way to market, a wooden
+      fence and a distant village in the background, wide calm sky across the
+      top fifth. The old man stands right of center facing left, one arm
+      stretched out, palm open and turned up, showing exactly five small
+      shiny beans - one red, one yellow, one green, one blue, one purple -
+      each about the size of a fingertip, all five fitting easily in his palm. Milky-White stands at the left
+      edge, her rope lead trailing toward the center. Leave an empty space
+      left of center, between the cow and the old man, where a small person
+      would stand.
+    hero_instruction: >-
+      Insert the hero child standing between Milky-White and the old man,
+      three-quarter view turned toward the old man, holding Milky-White's rope
+      in one hand. Curious, wide-eyed expression, leaning forward slightly to
+      look at the small beans in the old man's palm. Same clothes as page 1
+      (hero_outfit).
+    characters: [old_man, milky_white]
+    expressions:
+      old_man: "kind and mysterious: a twinkly-eyed little smile, eyebrows raised"
+    props: [beans]
+    palette_note: "Late morning; bright, clear daylight; pale blue sky, green fields, warm dirt road."
+    expression: "curious and wide-eyed: eyebrows raised, mouth slightly open"
+    must_be_visible: ["hero face", "old man face", "exactly five small beans (red, yellow, green, blue, purple; each about the size of a fingertip) in his palm", "Milky-White", "the rope"]
+
+  - page: 3
+    layout: s03_dusk_consequence
+    speaker: mother
+    portrait: moment
+    portrait_expression: angry
+    title: "Out the window"
+    text: "Beans! she cried. And out the window they went."
+    speech:
+      - {who: mother, says: "Beans!"}
+    caption: >-
+      The cottage at dusk. The mother has thrown the five small beans from the
+      window and the five beans scatter: exactly four small beans (red,
+      yellow, green, blue) in the air between the window and the garden, and
+      exactly one small purple bean on the doorstep by the hero child's boot -
+      the purple one. Five beans in total, no others anywhere in the picture.
+      The hero child stands at the doorway, watching.
+    art_caption: >-
+      The outside of the cottage at dusk. In the open window at the upper
+      left, the mother leans out with one arm stretched toward the garden -
+      she has just thrown the beans and her hand is empty. Exactly four small
+      beans (one red, one yellow, one green, one blue), well apart, fly in ONE
+      clear arc from her hand down toward the garden. The hero child stands
+      in the open front door at the lower right, watching, and exactly one
+      small purple bean lies on the doorstep right by the hero child's boot.
+      Five beans in total: none on the windowsill, none on the grass, none in
+      anyone's hand.
+    plate_prompt: >-
+      The outside of the small cottage at dusk, seen from the garden. An
+      upper-left window is thrown open, lit warm from inside, with an empty
+      space in it where a person would lean out with one arm stretched toward
+      the garden. Exactly four small beans - one red, one yellow, one green,
+      one blue, each about the size of a fingertip and well apart from each
+      other - fly in one clear arc from the window down toward the garden;
+      nothing on the windowsill. The front door at the lower right is open
+      with warm light spilling out, and exactly one small purple bean lies on
+      the doorstep. Five beans in total, no others anywhere. Leave the doorway
+      empty where a small person would stand and watch. The lower fifth is
+      dark grass in shadow, painted right to the bottom edge.
+    hero_instruction: >-
+      Insert the hero child standing in the open doorway at the lower right,
+      three-quarter view, looking up and left at the flying beans, mouth open
+      in surprise, one hand on the door frame, both hands empty. Back-lit by
+      the warm doorway light with a soft rim, face still clearly readable.
+      Wearing hero_outfit. Exactly one small purple bean, about the size of a
+      fingertip, lies on the doorstep right by the hero child's boot.
+    characters: [mother]
+    expressions:
+      mother: "cross and exasperated: eyebrows drawn down, mouth open as she cries out, a comical huff - never scary"
+    props: [beans, cottage]
+    palette_note: "Dusk; noticeably darker than pages 1-2: deep blue-violet sky with a last orange glow, warm window and doorway light, dark green grass."
+    expression: "surprised: eyes wide, eyebrows up, mouth open"
+    must_be_visible: ["hero face", "mother at the window, arm stretched out", "exactly four small beans (red, yellow, green, blue) flying in one arc from the window toward the garden", "exactly one small purple bean on the doorstep by the hero child's boot: five beans in total, no others", "garden below the window"]
+
+  - page: 4
+    layout: s04_wonder_wide
+    title: "The beanstalk at dawn"
+    text: "In the morning, something enormous stood in the garden. A beanstalk, growing up, up, up into the clouds!"
+    caption: >-
+      At dawn, a giant beanstalk rises from the garden where the beans fell,
+      twisting up past the cottage roof and into the clouds. The hero child
+      stands small at its foot, looking up.
+    plate_prompt: >-
+      Wide view of the cottage garden at dawn. A giant beanstalk with
+      umbrella-sized heart-shaped leaves bursts from the soil left of center
+      and twists upward, past the cottage roof, until it disappears into
+      pink-gold clouds at the top of the frame. Dew glistens on the leaves.
+      The cottage sits small on the right. Leave an empty space at the
+      lower-left, at the foot of the beanstalk, where a small person would
+      stand looking up. Keep the top-right corner as plain soft dawn sky.
+    hero_instruction: >-
+      Insert the hero child small in frame at the lower-left by the base of
+      the beanstalk, head tilted back to look up, face turned so it is still
+      visible, mouth open in amazement, both hands raised. Wearing hero_outfit.
+    characters: []
+    props: [beanstalk, cottage]
+    palette_note: "Dawn; pink and gold light from the right, long soft shadows, fresh greens."
+    expression: "amazed: eyes wide, mouth open in wonder"
+    must_be_visible: ["hero face", "beanstalk base", "beanstalk rising into clouds", "cottage"]
+
+  - page: 5
+    layout: s05_vertical_ascent
+    title: "Climbing the beanstalk"
+    text: "{name} took a deep breath and began to climb. Leaf by leaf {they} went, higher than the birds."
+    caption: >-
+      The hero child climbs the beanstalk, high above the cottage. Little
+      birds fly below and the cottage roof is tiny far beneath.
+    plate_prompt: >-
+      Tall vertical view along the beanstalk: the thick twisting stalk runs
+      from the bottom of the frame to the top, big leaves sticking out like
+      steps. Far below, the cottage roof and garden are tiny in soft morning
+      mist; a few small birds fly beneath the middle of the stalk. Above, the
+      stalk vanishes into bright clouds. Leave an empty space at the middle of
+      the stalk where a small climbing figure would be. Keep the bottom fifth
+      as plain soft mist and distant fields.
+    hero_instruction: >-
+      Insert the hero child climbing the stalk at mid-frame, both hands
+      gripping a leaf stem above, one boot on a leaf below. Three-quarter view
+      looking back over the shoulder toward the viewer with a determined,
+      excited smile. Satchel swinging. Wearing hero_outfit.
+    characters: []
+    props: [beanstalk, cottage]
+    palette_note: "Early morning; clear bright light, the cottage below still misty."
+    expression: "determined and excited: a determined smile"
+    must_be_visible: ["hero face", "beanstalk", "tiny cottage far below", "birds"]
+
+  - page: 6
+    layout: s06_arrival_wide
+    title: "The castle in the clouds"
+    text: "At the very top, on a road made of clouds, stood the biggest castle {name} had ever seen."
+    caption: >-
+      Above the clouds, an enormous castle stands at the end of a road of
+      white cloud. The hero child has just stepped off the top of the
+      beanstalk.
+    plate_prompt: >-
+      A bright land above the clouds: a firm road of white cloud leads from
+      the lower-left to an enormous pale-stone castle with round towers and
+      blue pointed roofs filling the upper two-thirds. The tip of the
+      beanstalk curls up out of the clouds at the lower-left. Clear blue sky.
+      Leave an empty space in the lower-left foreground beside the beanstalk
+      tip where a small person would stand. Keep the bottom-right as plain
+      flat cloud.
+    hero_instruction: >-
+      Insert the hero child small in the lower-left foreground, just stepped
+      off the beanstalk, three-quarter view turned toward the castle, face
+      visible, eyes wide with wonder. Wearing hero_outfit.
+    characters: []
+    props: [beanstalk, castle]
+    palette_note: "Midday above the clouds; bright, airy whites and sky blues, warm sunlight on the castle stone."
+    expression: "full of wonder: eyes wide, mouth slightly open"
+    must_be_visible: ["hero face", "castle", "cloud road", "beanstalk tip"]
+
+  - page: 7
+    layout: s07_threshold_meeting
+    speaker: giants_wife
+    title: "The giant's wife"
+    text: "A giant woman opened the door. You look hungry, she said kindly. Come in, quick!"
+    speech:
+      - {who: giants_wife, says: "You look hungry,"}
+      - {who: giants_wife, says: "Come in, quick!"}
+    caption: >-
+      At the castle's enormous wooden door, the giant's wife bends down and
+      smiles at the hero child, holding out a giant crust of bread.
+    plate_prompt: >-
+      An enormous arched wooden castle door standing open. The giant's wife
+      fills the right half of the frame, bending low with a kind smile, one
+      huge hand holding out a crust of bread as big as a pillow. Her wooden
+      spoon is tucked in her apron. Warm kitchen light glows behind her. Leave
+      an empty space on the left side of the threshold where a small person
+      would stand facing into the doorway. Keep the top fifth as plain stone
+      lintel.
+    hero_instruction: >-
+      Insert the hero child standing at the left of the threshold,
+      three-quarter view turned toward the giant's wife, looking up, a shy
+      hopeful smile, one hand reaching for the bread. Tiny next to her.
+      Wearing hero_outfit.
+    characters: [giants_wife]
+    expressions:
+      giants_wife: "kind and welcoming: a warm, gentle smile, eyebrows soft"
+    palette_note: "Midday outside, warm amber kitchen light from inside the door."
+    expression: "shy and hopeful: a small shy smile"
+    must_be_visible: ["hero face", "giant's wife face", "bread", "doorway"]
+
+  - page: 8
+    layout: s08_interior_secret
+    speaker: giants_wife
+    title: "Hide!"
+    text: "Then the floor began to shake. Hide! she whispered, and {name} slipped into a cupboard, just like the one at home."
+    speech:
+      - {who: giants_wife, says: "Hide!"}
+    caption: >-
+      In the giant's huge kitchen, the giant's wife holds a cupboard door open
+      while the hero child climbs inside. Cups on the table tip and wobble as
+      the floor shakes.
+    plate_prompt: >-
+      Inside the giant's enormous kitchen: a table as big as a house, giant
+      cups and plates, a crackling fireplace. On the right, a tall wooden
+      cupboard stands with its lower door open and its shelf empty. The
+      giant's wife stands beside it, one finger to her lips, glancing over her
+      shoulder toward a doorway at the left. On the table a giant cup is
+      tipping over and a spoon is sliding off the edge. Leave the inside of
+      the open cupboard empty, with room for a small person climbing in. Keep
+      the top fifth as plain ceiling beams.
+    hero_instruction: >-
+      Insert the hero child half inside the open cupboard on the right,
+      three-quarter view, looking back toward the viewer with wide, nervous
+      eyes and no smile, one hand on the cupboard door. Wearing hero_outfit.
+    characters: [giants_wife]
+    expressions:
+      giants_wife: "urgent and worried: one finger to her lips, eyebrows raised, glancing over her shoulder - no smile"
+    palette_note: "Interior; warm amber firelight from the left, cosy shadows."
+    expression: "nervous: eyes wide, eyebrows raised, mouth pressed shut - no smile"
+    must_be_visible: ["hero face", "giant's wife", "open cupboard", "giant table and cups"]
+
+  - page: 9
+    layout: s09_low_angle_reveal
+    speaker: giant
+    title: "Fee-fi-fo-fum"
+    text: "Fee-fi-fo-fum! boomed the giant. I smell somebody new!"
+    speech:
+      - {who: giant, says: "Fee-fi-fo-fum!"}
+      - {who: giant, says: "I smell somebody new!"}
+    caption: >-
+      Seen from below, the giant stomps into the kitchen, sniffing the air
+      with his big round nose. The hero child watches from the crack of the
+      cupboard in the corner.
+    plate_prompt: >-
+      Low-angle view across the kitchen floor: the giant fills the upper and
+      middle frame, mid-stomp, leaning forward and sniffing the air with his
+      eyes squeezed shut and his nose wrinkled, a comic rather than scary
+      pose. In the lower-left corner, the cupboard door is open just a crack,
+      with an empty gap where a face would peek out in profile. Keep the
+      bottom-right as plain stone floor.
+    hero_instruction: >-
+      Insert the hero child small in the lower-left, peeking out through the
+      cupboard crack in profile, looking up at the giant, frightened: eyes
+      very wide, eyebrows raised and worried, mouth pressed shut, no smile,
+      both hands pressed to the door edge. Wearing hero_outfit.
+    characters: [giant]
+    expressions:
+      giant: "comically sniffing: eyes squeezed shut, big nose wrinkled and lifted, cheeks puffed - silly, not menacing"
+    sizes:
+      giant: "seen from below he towers over the kitchen, his head up near the ceiling beams - about four times the hero child's height; the child peeking from the cupboard is no taller than his boot and lower leg"
+    palette_note: "Interior; firelight from below casting warm light up on the giant, cosy rather than menacing."
+    expression: "frightened, the way a picture-book child is frightened (not horror): eyes very wide, eyebrows raised and worried, mouth pressed shut or slightly open, shrinking back - no smile"
+    must_be_visible: ["hero face", "giant face", "cupboard"]
+
+  - page: 10
+    layout: s10_closeup_reaction
+    title: "Very, very still"
+    text: "{name} peeked through the crack in the door. {They} held {their} breath and stayed very, very still."
+    caption: >-
+      Close-up of the hero child's face peeking through the narrow gap of the
+      cupboard door, holding their breath; the face sits in the middle band
+      of the picture, well clear of the top and bottom fifths. The giant's big
+      blurry boot is in the background, low at one side.
+    art_caption: >-
+      Close-up of the hero child's face peeking through the narrow gap of the
+      cupboard door, holding their breath; the face sits in the middle band
+      of the picture, well clear of the top and bottom fifths. The giant's big
+      boot is in the dim background, low at one side. The whole picture is
+      painted crisply in the same style, edge to edge - no blurred or smeared
+      areas.
+    plate_prompt: >-
+      Close-up through a narrow gap between two wooden cupboard doors: the
+      inside edge of each door frames the center of the image. Beyond the gap,
+      in dim light, a giant's huge boot low at the right and the leg of a
+      table, painted crisply in the same style (no blur). Leave the middle band of the frame empty where a face would peek
+      through the gap. The top fifth is the dark wooden top of the cupboard
+      doorway in soft shadow, painted right to the top edge; the lower fifth
+      is the dark wood of the doors and the cupboard floor.
+    hero_instruction: >-
+      Insert the hero child's face in the middle band of the frame between the
+      cupboard doors: eyes a little above the center of the picture, the top
+      of the head below the top fifth and the chin well above the bottom
+      fifth (the face takes up about a third of the picture's height, not
+      more). Full face toward the viewer, eyes very wide, cheeks puffed from
+      holding their breath, fingers curled on a door edge at chin height.
+      Collar of hero_outfit visible.
+    characters: [giant]
+    sizes:
+      giant: "only his boot shows: the boot alone is taller than the hero child's whole head - far bigger than a grown-up's boot"
+    palette_note: "Interior; a slice of warm firelight across the hero child's eyes, the rest in soft shadow with a gentle rim light."
+    expression: "tense, holding their breath: eyes very wide, cheeks puffed, no smile"
+    must_be_visible: ["hero face", "cupboard door edges", "giant's boot"]
+
+  - page: 11
+    layout: s11_tense_two_shot
+    speaker: giant
+    portrait: moment
+    portrait_expression: angry
+    title: "One, two, three golden eggs"
+    text: "Wife, bring me my hen! said the giant. He counted her golden eggs, one, two, three, and soon he began to snore."
+    speech:
+      - {who: giant, says: "Wife, bring me my hen!"}
+    caption: >-
+      The giant sits at the huge table with the little hen and three golden
+      eggs before him, his head nodding to sleep. The hero child peeks out
+      from the cupboard on the left.
+    art_caption: >-
+      Framed tall from the floor up to the ceiling beams: on the right, the
+      giant sits at the huge table, so big that his head and shoulders rise
+      high up the frame, his head nodding to sleep; on the table before him
+      the little hen and three golden eggs. On the left, the hero child peeks
+      out from a tall cupboard, standing on the floor in the lower part of
+      the picture.
+    plate_prompt: >-
+      The giant sits at the enormous table on the right, chin drooping onto
+      his chest, eyes closed, a sleepy smile. On the table before him stands
+      the little russet hen beside three shining golden eggs in a row. On the
+      left, the cupboard door is open a little, with an empty space at the
+      opening where a small person would stand looking toward the table. Keep
+      the top fifth as plain shadowy wall.
+    hero_instruction: >-
+      Insert the hero child stepping half out of the cupboard on the left,
+      profile view facing right toward the giant and the hen, a curious,
+      careful expression, one finger raised to their own lips. Wearing
+      hero_outfit.
+    characters: [giant, hen]
+    expressions:
+      giant: "drowsy: eyelids drooping half shut, a sleepy contented smile, head nodding"
+    sizes:
+      giant: "sitting at the table he is still enormous: his head and shoulders rise high above the table top, his hand beside the hen is bigger than the whole hen, and the hero child standing on the floor reaches no higher than the seat of his chair"
+    props: [golden_egg]
+    palette_note: "Interior; firelight lower and softer, evening glow, sleepy mood."
+    expression: "careful and curious: eyebrows slightly raised, lips pressed together behind one finger, no grin"
+    must_be_visible: ["hero face", "giant", "hen", "three golden eggs"]
+
+  - page: 12
+    layout: s12_treasure_close
+    title: "The golden egg"
+    text: "The little hen clucked softly. And out came an egg of shining gold!"
+    caption: >-
+      The hero child holds the little brown hen close; a shining golden egg
+      has just appeared in the straw beside her. The giant sleeps in the soft
+      background.
+    art_caption: >-
+      A tall picture: the giant's table top fills the lower third, with a
+      nest of straw and a shining golden egg that has just appeared beside
+      the little brown hen. The hero child, seen from the head down to the
+      waist, holds the hen close. Behind and above them, the sleeping giant
+      is a large, dim shape painted crisply in the same style.
+    plate_prompt: >-
+      Medium close-up on the giant's table top: a nest of straw at
+      center-right with a freshly laid golden egg glowing softly. The sleeping
+      giant is a large, dim, simple shape in the background, painted crisply
+      in the same style (no blur). Leave the center-left empty where a figure
+      seen chest-up holding the hen would be (the figure and the hen are both
+      added later). Keep the top fifth simple: plain shadowy wall, painted
+      right to the top edge.
+    hero_instruction: >-
+      Insert the hero child at center-left, seen from the head down to the
+      waist, standing at the edge of the table top, three-quarter view,
+      gently holding the hen against their chest with both arms, looking down
+      at the golden egg with a delighted, astonished smile. The egg's glow
+      lights the face from below. Wearing hero_outfit.
+    characters: [hen, giant]
+    expressions:
+      giant: "fast asleep: eyes closed, mouth slightly open, peaceful"
+    sizes:
+      giant: "the sleeping giant behind fills much of the background: his head alone is bigger than the hero child's whole upper body"
+    props: [golden_egg]
+    palette_note: "Interior evening; warm golden glow from the egg, firelight behind."
+    expression: "delighted and astonished: an open-mouthed smile, eyes wide"
+    must_be_visible: ["hero face", "hen", "golden egg"]
+
+  - page: 13
+    layout: s13_escape_action
+    title: "Tip, tip, tiptoe"
+    text: "{name} tucked the hen under {their} arm and tiptoed past the snoring giant. Tip, tip, tiptoe."
+    caption: >-
+      The hero child tiptoes across the kitchen floor with the hen under one
+      arm. The giant sleeps in his chair with his mouth wide open.
+    plate_prompt: >-
+      Wide-medium view of the kitchen floor on a gentle diagonal from
+      lower-left to the open doorway at the right. The giant slumps asleep in
+      his chair on the left, head tipped back, mouth wide open. Leave an empty
+      space center-right on the floor where a small person would tiptoe toward
+      the door. Keep the top fifth as plain beams.
+    hero_instruction: >-
+      Insert the hero child center-right, mid-tiptoe, three-quarter view
+      moving right toward the door, glancing back at the giant, eyebrows high,
+      the hen tucked under the left arm. Wearing hero_outfit.
+    characters: [giant, hen]
+    expressions:
+      giant: "fast asleep and snoring: eyes closed, mouth wide open, head tipped back"
+    sizes:
+      giant: "slumped asleep in his huge chair he is still about three to four times the hero child's height; the tiptoeing child is no taller than the seat of his chair"
+    palette_note: "Interior evening; the fire has burned low, warm glow and deeper shadows."
+    expression: "tense and careful: eyebrows high, lips pressed together, no smile"
+    must_be_visible: ["hero face", "hen", "sleeping giant", "doorway"]
+
+  - page: 14
+    layout: s14_second_marvel
+    speaker: harp
+    title: "The singing harp"
+    text: "On a shelf by the door, a golden harp began to sing. Master! Master! Wake up!"
+    speech:
+      - {who: harp, says: "Master! Master! Wake up!"}
+    caption: >-
+      By the door, the golden harp sings out, its strings glowing. The hero
+      child, holding the hen, reaches up for it in surprise. Behind them, the
+      giant's eyes are blinking open.
+    art_caption: >-
+      Framed tall from the floor up to the ceiling: by the tall open door,
+      the golden harp sings out on a shelf above the hero child's head, its
+      strings glowing. The hero child stands on the floor, holding the hen
+      under one arm and reaching up for the harp in surprise. Behind them,
+      high up on the left, the giant's eyes are blinking open.
+    plate_prompt: >-
+      Beside the open doorway, a low wooden shelf holds the small golden harp,
+      its carved face singing with mouth wide open, its strings shimmering
+      with a bright golden glow. In the background on the left, the giant is
+      stirring in his chair, one eye opening. Leave an empty space on the
+      left-center where a small person would reach toward the harp. Keep the
+      top fifth plain.
+    hero_instruction: >-
+      Insert the hero child left-center, three-quarter view turned toward the
+      harp, one hand reaching up to take it, the hen still under the other
+      arm, a startled 'uh-oh' expression. Wearing hero_outfit.
+    characters: [harp, hen, giant]
+    expressions:
+      harp: "singing out loudly: the carved lady's mouth wide open, eyes bright"
+      giant: "just waking up, groggy: one eye blinking open, the other still shut, eyebrows rumpled"
+    sizes:
+      giant: "high up on the left in his chair: his head alone is bigger than the hero child's whole upper body, and seated he is still far taller than the open door"
+    palette_note: "Interior; the harp's glow adds a bright gold-white accent against the low firelight."
+    expression: "startled, 'uh-oh': eyes wide, eyebrows up, mouth in a small O - no smile"
+    must_be_visible: ["hero face", "harp", "hen", "giant waking"]
+
+  - page: 15
+    layout: s15_chase_action
+    title: "Thump, thump, thump!"
+    text: "The giant woke with a roar and came thumping after {name}, across the clouds."
+    caption: >-
+      The hero child runs along the cloud road toward the viewer with the hen
+      and the harp. Far behind, the giant comes thumping out of the castle,
+      slipping on the soft clouds.
+    art_caption: >-
+      The hero child runs along the cloud road toward the viewer in the
+      foreground with the hen and the harp, fleeing AWAY from the giant and
+      the castle - the child's back is to them, never running toward them.
+      Right behind the child, the giant comes thumping after them in the
+      same direction, also toward the viewer, towering high over the child -
+      his knee is above the child's head - arms flailing, one boot sinking
+      comically into a puff of cloud. The castle stands further back on the
+      cloud road; the tip of the beanstalk curls up at the lower-right.
+    plate_prompt: >-
+      The cloud road outside the castle, seen looking back toward it. Close
+      behind the empty foreground spot, the giant thumps along the cloud road,
+      towering high and enormous - arms flailing, one
+      boot sinking comically into a puff of cloud; the castle is further back.
+      The tip of the beanstalk is at the lower-right. Leave an empty space in the lower-center foreground
+      where a small person would run toward the viewer. The top fifth is open
+      sky painted right to the top edge - soft blue with a few drifting
+      clouds, never a blank strip.
+    hero_instruction: >-
+      Insert the hero child running toward the viewer in the lower-center
+      foreground, three-quarter view, an alarmed, determined face (eyes wide,
+      mouth open, no smile), the hen under one arm and the harp hugged in the
+      other, satchel flying. Wearing hero_outfit.
+    characters: [giant, hen, harp]
+    expressions:
+      giant: "comically cross: eyebrows drawn down, cheeks puffed, mouth open in a huffing roar - grumpy and silly, never scary"
+    sizes:
+      giant: "towering right behind the hero child, about four times the child's height - his knee is above the child's head; he is close behind, not small in the distance"
+    props: [beanstalk, castle]
+    palette_note: "Late afternoon above the clouds; warm golden light, long cloud shadows."
+    expression: "alarmed but determined: eyes wide, eyebrows up, mouth open, running hard - no smile"
+    must_be_visible: ["hero face", "giant", "hen", "harp", "beanstalk tip"]
+
+  - page: 16
+    layout: s16_vertical_turn
+    title: "Down, down, down"
+    text: "Down, down, down slid {name}, as fast as the wind. The beanstalk swayed and creaked above {them}."
+    caption: >-
+      The hero child slides down the beanstalk toward the cottage, holding on
+      tight. The hen peeks out of the satchel and the harp is tucked under one
+      arm. Below, the mother waves from the garden.
+    plate_prompt: >-
+      Tall vertical view along the beanstalk from above the cottage: the stalk
+      runs top to bottom, swaying in a gentle curve, leaves fluttering. Far up
+      at the top, the clouds are churning. Below, the cottage garden is
+      getting close, with a tiny empty spot on the garden path where a person
+      would stand waving. Leave an empty space in the middle band of the stalk
+      where a small figure would slide down. The churning clouds and the
+      stalk reach right to the top edge of the picture. Keep the bottom fifth
+      as simple garden grass, painted right to the bottom edge.
+    hero_instruction: >-
+      Insert the hero child sliding down the stalk at center, legs wrapped
+      around it, three-quarter view looking down toward the viewer with a
+      brave grin. Show the speed with the satchel strap and the beanstalk
+      leaves fluttering upward around the hero child; the hair keeps exactly
+      its usual length and style from the hero reference. The hen peeks from
+      the satchel; the harp is under one arm. Wearing hero_outfit.
+    characters: [mother, hen, harp]
+    expressions:
+      mother: "relieved and calling out: a big open smile, one arm waving"
+    props: [beanstalk, cottage]
+    palette_note: "Late afternoon; golden light, the garden below in warm sun."
+    expression: "brave and thrilled: a brave grin, eyes wide"
+    must_be_visible: ["hero face", "beanstalk", "hen", "harp", "cottage below"]
+
+  - page: 17
+    layout: s17_ground_action_two_shot
+    speaker: hero
+    portrait: moment
+    portrait_expression: scared
+    title: "Chop, chop, chop!"
+    text: "Mother, the axe! cried {name}. And together they chopped, chop, chop, chop!"
+    speech:
+      - {who: hero, says: "Mother, the axe!"}
+    caption: >-
+      In the garden at the foot of the beanstalk, the hero child and the
+      mother hold the axe handle together and chop at the thick stalk. The
+      hen and the harp sit safely on the grass nearby.
+    art_caption: >-
+      In the garden at the foot of the beanstalk, the mother and the hero
+      child swing ONE axe together: the mother holds the handle with both
+      hands higher up, the hero child's hands grip it just below hers. The
+      axe blade has bitten deep into a wedge-shaped notch in the thick stalk,
+      pale inner wood showing and wood chips flying. The hen and the harp sit
+      safely on the grass nearby.
+    plate_prompt: >-
+      The cottage garden at the base of the thick beanstalk, with a deep
+      wedge-shaped notch cut into the stalk, pale inner wood showing, and wood
+      chips scattered on the grass. On
+      the grass at the lower-left, the hen sits beside the golden harp. Leave
+      an empty space right of center where a grown-up would stand swinging a
+      wood axe at the stalk, and another empty space left of center beside it
+      where a small person would stand. Keep the top fifth as calm sky.
+    hero_instruction: >-
+      Insert the hero child beside the mother, three-quarter view, both hands
+      on the lower part of the one axe handle, just below the mother's hands
+      (she holds it too), swinging it together with her into the notch; a
+      brave, focused face looking at the stalk. Wearing hero_outfit.
+    characters: [mother, hen, harp]
+    expressions:
+      mother: "determined and focused: brows drawn down, lips pressed together, no smile"
+    props: [beanstalk, axe]
+    palette_note: "Late afternoon; warm low sun from the left, long shadows."
+    expression: "brave and focused: brows drawn down, lips pressed together, no smile"
+    must_be_visible: ["hero face", "mother face", "axe held by both the mother and the hero child", "deep notch cut into the beanstalk", "hen", "harp"]
+
+  - page: 18
+    layout: s18_aftermath_wide
+    title: "Whump!"
+    text: "The giant scrambled back up to his castle, and the beanstalk came tumbling down. Whump!"
+    caption: >-
+      The beanstalk topples gently across the fields. High in the clouds, the
+      giant is safe back at the top, shaking his fist. The hero child, the
+      mother, the hen and the harp watch from the garden.
+    art_caption: >-
+      The beanstalk has fallen: the whole long stalk lies flat on the ground
+      in ONE STRAIGHT line across the fields, like a felled tree trunk - not
+      bent, not arched, not curving up into the air. Its clean cut end lies
+      on the grass right next to exactly ONE short, clean chopped stump in
+      the garden (one stump only), and the stalk runs straight away from it
+      across the fields to its leafy top far off; its leaves are crushed flat
+      and a puff of dust rises where it landed. The cottage stands in the
+      garden behind the family. High in the clouds at the top, the giant's
+      head and shoulders peer over the cloud edge, grumpy but safe, shaking
+      his fist - his head and shoulders together are roughly as big as the
+      cottage below. He has already climbed back up and is safe in the clouds:
+      no giant on the beanstalk, on the ground or climbing down. The hero
+      child, the mother, the hen and the harp watch from the garden beside
+      the stump.
+    plate_prompt: >-
+      Wide view of the countryside at sunset: the long beanstalk lies fallen,
+      flat on the ground in one straight line across the fields like a felled
+      tree trunk, its cut end on the grass right beside exactly one short,
+      clean chopped stump in the garden (one stump only), its leaves crushed
+      flat and a puff of dust where it landed; nothing of it stands or arches
+      up. The cottage stands in the garden. High in the clouds at the top, the
+      giant's head and shoulders peer over the cloud edge, grumpy but safe -
+      head and shoulders together roughly as big as the cottage. In the
+      lower-left, in the garden near the stump, the hen sits on the grass with
+      the harp beside her; leave an empty space there where a grown-up and a
+      small person would stand together. Keep the bottom-right as plain open
+      field.
+    hero_instruction: >-
+      Insert the hero child small in frame beside the mother in the
+      lower-left, face turned toward the viewer in three-quarter, hands on
+      cheeks, a big relieved grin. Wearing hero_outfit.
+    characters: [mother, giant, hen, harp]
+    expressions:
+      mother: "relieved: a warm smile, one arm round the hero child"
+      giant: "grumpy and cross: eyebrows drawn down, a comical pout, shaking his fist - silly, never scary"
+    sizes:
+      giant: "only his head and shoulders show above the cloud edge, and together they are roughly as big as the cottage - big and clearly a giant, but not filling the sky"
+    props: [beanstalk, stump, cottage]
+    palette_note: "Sunset; orange and pink sky, warm low light."
+    expression: "relieved and happy: a big grin, hands on cheeks"
+    must_be_visible: ["hero face", "mother", "the beanstalk lying fallen, flat and straight across the fields", "exactly one chopped stump", "cottage", "giant in the clouds", "hen", "harp"]
+
+  - page: 19
+    layout: s19_garden_planting
+    title: "Planting the last bean"
+    text: "In {their} pocket, {name} found one last bean, the one that had rolled to {their} feet. {They} planted it, and patted the soil, gently, gently."
+    caption: >-
+      Next morning in the garden, the hero child kneels and plants the last
+      bean - a single small purple bean, about the size of a fingertip - in a
+      little hole in the soil while the mother kneels alongside with a
+      watering can.
+    plate_prompt: >-
+      Medium close-up of the cottage vegetable garden in fresh morning light:
+      dark crumbly soil at center with a small hole, a single small purple
+      bean, about the size of a fingertip, ready beside it (no other beans),
+      and a small watering can on the soil at the right. The fallen
+      beanstalk lies far in the soft background. Leave empty spaces where two
+      people would kneel: one center-left with room for hands in the soil, one
+      on the right by the watering can. Keep the top fifth as soft plain
+      morning sky.
+    hero_instruction: >-
+      Insert the hero child kneeling center-left, three-quarter view, both
+      hands pressing the soil around the single small purple bean (about the
+      size of a fingertip, much smaller than the hero child's hand), face
+      visible above the hands with a proud, gentle smile. A little soil on
+      the fingers. Wearing hero_outfit.
+    characters: [mother]
+    expressions:
+      mother: "gentle and proud: a soft smile, watching the hero child"
+    props: [last_bean]
+    palette_note: "Fresh morning; cool clear light, dew on the leaves, hopeful."
+    expression: "proud and gentle: a soft smile"
+    must_be_visible: ["hero face", "mother", "a single small purple bean, about the size of a fingertip", "soil"]
+
+  - page: 20
+    layout: s20_finale_home
+    title: "Home again"
+    text: "With one golden egg, they bought Milky-White back. And the cupboard was never empty again."
+    caption: >-
+      In the cosy cottage kitchen, the hero child sits at a table full of food
+      with the mother. The cupboard behind is full, the hen sits on the table,
+      the harp plays, and Milky-White pokes her head through the open window.
+    plate_prompt: >-
+      The same cottage kitchen as page 1, now warm and cosy in lamplight: the
+      cupboard on the wall is full of bread, jars and cheese; the table is set
+      with soup, bread and apples. The hen sits on the table next to a golden
+      egg; the golden harp plays on the windowsill, its strings softly
+      glowing; Milky-White pokes her head in through the open window, her bell
+      shining. Leave two empty seats at the table where people would sit: the
+      center seat facing the viewer and the seat at the right. Keep the lower
+      fifth as plain tablecloth edge.
+    hero_instruction: >-
+      Insert the hero child seated at the center of the table, full face to
+      the viewer, a big happy smile, one hand raised in a wave. Wearing
+      hero_outfit.
+    characters: [mother, milky_white, hen, harp]
+    expressions:
+      mother: "happy: a big warm smile"
+    props: [golden_egg]
+    palette_note: "Evening; warm lamplight and firelight, the cosiest page in the book; mirrors page 1's room but warm instead of cool."
+    expression: "happy: a big smile"
+    must_be_visible: ["hero face", "mother face", "full cupboard", "hen", "harp", "Milky-White at the window"]
+
+about_me:
+  layout: about_me
+  heading: "About {name}"
+  hero_instruction: >-
+    The hero child, waist-up, full face, smiling at the viewer, wearing
+    hero_outfit, holding the little brown hen in one arm.
+  background_note: "Soft sky-blue background with a few gently curling beanstalk leaves at the edges."

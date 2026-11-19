@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}PolyComic - Admin{% endblock %}
+{% block top_title %}ADMIN{% endblock %}
+{% block device_label %}Admin{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/admin.js') }}" defer></script>{% endblock %}
+
+{% block top_screen %}
+<div class="wallet-top admin-top">
+  <p class="title-small">Admin desk</p>
+  <div class="head-pair">
+    <div><p class="head-num" id="head-pending">&mdash;</p><p class="head-lab">Pending refunds</p></div>
+    <div><p class="head-num" id="head-margin">&mdash;</p><p class="head-lab">Margin / book (Cost-Efficient)</p></div>
+  </div>
+  <p class="wallet-signin" id="admin-denied" role="alert" hidden>Admins only.</p>
+</div>
+{% endblock %}
+
+{% block bottom_screen %}
+<div class="tabbar" role="tablist" aria-label="Admin sections">
+  <button type="button" role="tab" id="tab-refunds" class="tab" aria-selected="true" aria-controls="panel-refunds">REFUNDS</button>
+  <button type="button" role="tab" id="tab-costs" class="tab" aria-selected="false" aria-controls="panel-costs" tabindex="-1">COSTS</button>
+</div>
+
+<section id="panel-refunds" role="tabpanel" aria-labelledby="tab-refunds">
+  <p class="label">Pending</p>
+  <p class="empty" id="pend-empty" hidden>Nothing waiting. All clear!</p>
+  <ul class="rf-list" id="pend-list"></ul>
+  <p class="label sect">History</p>
+  <p class="empty" id="hist-empty" hidden>No past requests yet.</p>
+  <table class="tbl cards" id="hist-table" hidden>
+    <thead><tr><th scope="col">Date</th><th scope="col">User</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Note</th></tr></thead>
+    <tbody id="hist-body"></tbody>
+  </table>
+  <p class="form-msg" id="admin-msg" role="status" aria-live="polite"></p>
+</section>
+
+<section id="panel-costs" role="tabpanel" aria-labelledby="tab-costs" hidden>
+  <div class="tiles" id="tiles"></div>
+  <p class="label sect">By kind</p>
+  <table class="tbl compact" id="kind-table">
+    <thead><tr><th scope="col">Kind</th><th scope="col">Calls</th><th scope="col">Cost</th><th scope="col">Per call</th></tr></thead>
+    <tbody id="kind-body"></tbody>
+  </table>
+  <p class="label sect">Recent books</p>
+  <table class="tbl cards" id="recent-table">
+    <thead><tr><th scope="col">Book</th><th scope="col">Tier</th><th scope="col">Date</th><th scope="col">Cost</th><th scope="col">Calls</th><th scope="col">Retries</th></tr></thead>
+    <tbody id="recent-body"></tbody>
+  </table>
+</section>
+{% endblock %}

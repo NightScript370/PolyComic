@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}PolyComic - Wallet{% endblock %}
+{% block top_title %}WALLET{% endblock %}
+{% block device_label %}Wallet{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/wallet.js') }}" defer></script>{% endblock %}
+
+{% block top_screen %}
+<div class="wallet-top">
+  <p class="title-small">Your balance</p>
+  <p class="balance" id="balance" aria-live="polite">$&mdash;.&mdash;&mdash;</p>
+  <p class="price-line" id="price-line">Books: Professional $3.99 · Cost-Efficient $0.99 <span class="avg" id="avg-line"></span></p>
+  <p class="wallet-note" id="wallet-note" role="status" aria-live="polite" hidden></p>
+  <p class="wallet-signin" id="wallet-signin" hidden>Please <a href="/auth/login">sign in with Google</a> to see your wallet.</p>
+</div>
+{% endblock %}
+
+{% block bottom_screen %}
+<div class="tabbar" role="tablist" aria-label="Wallet sections">
+  <button type="button" role="tab" id="tab-add" class="tab" aria-selected="true" aria-controls="panel-add">ADD FUNDS</button>
+  <button type="button" role="tab" id="tab-history" class="tab" aria-selected="false" aria-controls="panel-history" tabindex="-1">HISTORY</button>
+  <button type="button" role="tab" id="tab-refunds" class="tab" aria-selected="false" aria-controls="panel-refunds" tabindex="-1">REFUNDS</button>
+</div>
+
+<section id="panel-add" role="tabpanel" aria-labelledby="tab-add">
+  <p class="label">Top up</p>
+  <div class="presets" id="presets" role="group" aria-label="Top-up amount"></div>
+  <form id="custom-form" class="custom" novalidate>
+    <label class="label" for="custom-amount">Or a custom amount</label>
+    <div class="custom-row">
+      <span class="cur" aria-hidden="true">$</span>
+      <input type="text" id="custom-amount" class="txt" inputmode="decimal" autocomplete="off" placeholder="1 - 100" aria-describedby="topup-msg">
+      <button type="submit" class="pill small" id="custom-go">ADD</button>
+    </div>
+  </form>
+  <p class="form-msg" id="topup-msg" role="status" aria-live="polite"></p>
+</section>
+
+<section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+  <p class="empty" id="tx-empty" hidden>No activity yet.</p>
+  <table class="tbl cards" id="tx-table" hidden>
+    <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Amount</th><th scope="col">Balance</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody id="tx-body"></tbody>
+  </table>
+</section>
+
+<section id="panel-refunds" role="tabpanel" aria-labelledby="tab-refunds" hidden>
+  <p class="empty" id="rf-empty" hidden>No refund requests. Use REQUEST REFUND next to a top-up in HISTORY.</p>
+  <ul class="rf-list" id="rf-list"></ul>
+</section>
+{% endblock %}

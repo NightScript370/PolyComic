@@ -1,0 +1,128 @@
+/* PolyComic - wallet, admin, header chips, dialogs, tables. Loaded after app.css. */
+
+/* ---------- header: balance chip + admin link ---------- */
+.auth { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.balance-chip, .admin-link {
+  font-family: var(--font-pixel); font-size: 11px; line-height: 1; text-decoration: none; white-space: nowrap;
+  padding: 8px 12px; border-radius: 999px; border: 2px solid var(--accent-dark); color: #fff;
+  background: linear-gradient(#8fcbff 0%, var(--accent-2) 48%, var(--accent) 52%, var(--accent-dark) 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .6), 0 2px 0 var(--accent-dark);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+}
+.balance-chip.low { background: linear-gradient(#ffb4a6, #e8604a 52%, #a3200f); border-color: #7a1608; box-shadow: inset 0 2px 0 rgba(255,255,255,.5), 0 2px 0 #7a1608; }
+.admin-link { background: linear-gradient(#f3f5f9, #c9d0dc); color: #17233a; border-color: #7d8899; box-shadow: inset 0 2px 0 #fff, 0 2px 0 #7d8899; text-shadow: none; }
+.balance-chip:hover, .admin-link:hover { filter: brightness(1.06); }
+@media (max-width: 480px) {
+  .auth-name { display: none; }
+  .balance-chip, .admin-link { font-size: 10px; padding: 8px 10px; }
+}
+
+/* ---------- small shared bits ---------- */
+.more { margin: 0 0 14px; }
+.more summary { cursor: pointer; font-family: var(--font-label); font-weight: 700; font-size: 13px; color: var(--accent-dark); padding: 6px 0 10px; }
+.more[open] summary { padding-bottom: 8px; }
+.price-line { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--text-soft); text-align: center; }
+.price-line .avg { font-weight: 600; }
+.price-add { margin-left: 4px; font-family: var(--font-label); font-size: 12px; color: var(--accent-dark); }
+.fine { margin: 10px 0 0; font-size: 12px; color: var(--text-soft); text-align: center; }
+.empty { margin: 10px 0; text-align: center; font-weight: 700; color: var(--text-soft); }
+.form-msg.ok { color: #14602a; }
+.chip.pending { color: #7a5200; border-color: #7a5200; }
+.chip.muted { color: #46556f; border-color: #46556f; }
+.chip.failed { color: #a3200f; border-color: #a3200f; }
+
+/* ---------- dialog ---------- */
+dialog.rpg-dialog { border: 0; padding: 0; background: transparent; width: min(420px, calc(100vw - 32px)); max-width: none; color: #fff; }
+dialog.rpg-dialog::backdrop { background: rgba(10, 20, 40, .6); }
+dialog.rpg-dialog .rpg-box { max-width: none; }
+.dlg-label { display: block; margin: 0 0 14px; font-family: var(--font-label); font-size: 12px; color: #ffe27a; }
+.dlg-label .txt { display: block; margin-top: 6px; }
+
+/* ---------- wallet / admin top screen ---------- */
+.wallet-top { text-align: center; min-height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 8px 0; }
+.balance { margin: 4px 0 8px; font-family: var(--font-pixel); font-size: clamp(30px, 11vw, 54px); line-height: 1.1; color: var(--accent); text-shadow: 3px 3px 0 #fff, 5px 5px 0 var(--accent-dark); overflow-wrap: anywhere; }
+.wallet-top .price-line { margin: 0; max-width: 34ch; }
+.wallet-note { margin: 12px 0 0; padding: 8px 12px; max-width: 36ch; border: 2px solid var(--accent); border-radius: 10px; background: #fff; font-weight: 700; font-size: 14px; }
+.wallet-note.ok { border-color: #14602a; color: #14602a; }
+.wallet-note.bad { border-color: #a3200f; color: #a3200f; }
+.wallet-signin { margin: 12px 0 0; font-weight: 700; }
+.wallet-signin a { color: var(--accent-dark); }
+.head-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; max-width: 360px; }
+.head-num { margin: 4px 0; font-family: var(--font-pixel); font-size: clamp(20px, 7vw, 30px); color: var(--accent); text-shadow: 2px 2px 0 #fff, 3px 3px 0 var(--accent-dark); }
+.head-lab { margin: 0; font-family: var(--font-label); font-size: 12px; color: var(--accent-dark); }
+
+/* ---------- top-up ---------- */
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 14px; }
+.presets .pill { padding: 14px 6px; font-size: 14px; }
+.custom .label { margin-bottom: 6px; }
+.custom-row { display: flex; align-items: center; gap: 8px; }
+.custom-row .txt { flex: 1; min-width: 0; }
+.cur { font-family: var(--font-pixel); font-size: 14px; color: var(--accent-dark); }
+.custom-row .pill { flex: none; }
+
+/* ---------- tables (stack into cards on phones) ---------- */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; background: rgba(255, 255, 255, .85); border: 2px solid var(--screen-frame); border-radius: 8px; overflow: hidden; }
+.tbl th { text-align: left; font-family: var(--font-label); font-size: 11px; padding: 8px 8px; color: var(--accent-dark); background: #dbeaff; border-bottom: 2px solid var(--screen-frame); white-space: nowrap; }
+.tbl td { padding: 8px 8px; border-bottom: 1px solid rgba(70, 85, 111, .25); vertical-align: middle; overflow-wrap: anywhere; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl .amt { font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl .pos { color: #14602a; }
+.tbl .neg { color: #a3200f; }
+.tbl .what a { color: var(--accent-dark); font-weight: 700; }
+.tbl .u-mail { display: block; color: var(--text-soft); }
+.tbl .act .pill { font-size: 10px; padding: 7px 10px; white-space: nowrap; }
+.tbl .note { color: var(--text-soft); font-size: 13px; }
+@media (max-width: 600px) {
+  .tbl:not(.compact), .tbl:not(.compact) tbody, .tbl:not(.compact) tr, .tbl:not(.compact) td { display: block; }
+  .tbl:not(.compact) { background: transparent; border: 0; }
+  .tbl:not(.compact) thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tbl:not(.compact) tr { margin: 0 0 10px; padding: 4px 10px; background: rgba(255, 255, 255, .9); border: 2px solid var(--screen-frame); border-radius: 10px; box-shadow: 3px 3px 0 rgba(26, 90, 168, .3); }
+  .tbl:not(.compact) td { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: right; padding: 6px 0; border-bottom: 1px dashed rgba(70, 85, 111, .3); }
+  .tbl:not(.compact) td:last-child { border-bottom: 0; }
+  .tbl:not(.compact) td::before { content: attr(data-label); flex: none; font-family: var(--font-label); font-size: 11px; color: var(--accent-dark); text-align: left; }
+  .tbl:not(.compact) td[data-label=""]::before { content: none; }
+  .tbl:not(.compact) td.act { justify-content: flex-end; }
+  .tbl:not(.compact) td.act:empty { display: none; }
+  .tbl:not(.compact) .u-mail { display: inline; margin-left: 6px; }
+}
+
+/* ---------- refund cards ---------- */
+.rf-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 10px; }
+.rf { padding: 10px 12px; background: rgba(255, 255, 255, .9); border: 2px solid var(--screen-frame); border-radius: 10px; box-shadow: 3px 3px 0 rgba(26, 90, 168, .3); }
+.rf-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rf-head strong { font-family: var(--font-pixel); font-size: 14px; }
+.rf-meta, .rf-user, .rf-note { margin: 4px 0 0; font-size: 13px; color: var(--text-soft); overflow-wrap: anywhere; }
+.rf-user { color: var(--text); font-weight: 700; }
+.rf-note { font-style: italic; }
+.rf .rpg-actions { margin-top: 10px; }
+.rf .rpg-actions .pill { font-size: 11px; padding: 8px 14px; }
+
+/* ---------- admin tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0 0 4px; }
+.tile { padding: 10px 12px; background: rgba(255, 255, 255, .92); border: 2px solid var(--screen-frame); border-radius: 10px; box-shadow: 3px 3px 0 rgba(26, 90, 168, .3); min-width: 0; }
+.tile.wide { grid-column: 1 / -1; }
+.tile-lab { margin: 0; font-family: var(--font-label); font-size: 11px; color: var(--accent-dark); }
+.tile-num { margin: 4px 0 0; font-family: var(--font-pixel); font-size: 18px; color: var(--text); overflow-wrap: anywhere; }
+.tile-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-soft); font-weight: 700; }
+.tile.bad { border-color: #a3200f; }
+.tile.bad .tile-num { color: #a3200f; }
+.tile.warn .tile-num { color: #7a5200; }
+
+@media (max-width: 420px) {
+  .presets .pill { font-size: 13px; }
+  .tile-num { font-size: 16px; }
+}
+
+/* ---------- card-style tables (always stacked: the device screen is narrow) ---------- */
+.tbl.cards, .tbl.cards tbody, .tbl.cards tr, .tbl.cards td { display: block; }
+.tbl.cards { background: transparent; border: 0; }
+.tbl.cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tbl.cards tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 0 0 10px; padding: 10px 12px; background: rgba(255, 255, 255, .9); border: 2px solid var(--screen-frame); border-radius: 10px; box-shadow: 3px 3px 0 rgba(26, 90, 168, .3); }
+.tbl.cards td { padding: 0; border: 0; text-align: left; min-width: 0; }
+.tbl.cards td::before { content: attr(data-label); display: block; margin-bottom: 1px; font-family: var(--font-label); font-size: 10px; color: var(--accent-dark); }
+.tbl.cards td.what { grid-column: 1 / -1; order: -1; font-weight: 700; }
+.tbl.cards td.what::before, .tbl.cards td.act::before, .tbl.cards td[data-label=""]::before { display: none; }
+.tbl.cards td.act, .tbl.cards td.note { grid-column: 1 / -1; }
+.tbl.cards td.act:empty { display: none; }
+.tbl.cards .u-mail { display: block; margin: 0; font-weight: 400; }
+@media (max-width: 420px) { .cart-name { font-size: 9px; letter-spacing: -.3px; } .cart-body { padding-left: 4px; padding-right: 4px; } }

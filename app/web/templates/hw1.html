@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}PolyComic - Quick scenes{% endblock %}
+{% block device_label %}Quick scenes{% endblock %}
+{% block scripts %}
+  <script src="{{ static_url('js/form.js') }}" defer></script>
+  <script src="{{ static_url('js/hw1.js') }}" defer></script>
+{% endblock %}
+
+{% block top_screen %}
+<div id="state-idle" class="state" data-state="idle">
+  <div class="title-card">
+    <p class="title-small">Quick scenes</p>
+    <h1 class="title-big">POLY<br>COMIC</h1>
+    <p class="blink" aria-hidden="true">PRESS START</p>
+    <p class="hint">Add a photo and pick a style on the bottom screen.</p>
+  </div>
+</div>
+
+<div id="state-progress" class="state" data-state="progress" hidden>
+  <div class="progress">
+    <p class="stage" id="stage-text" role="status" aria-live="polite">Rendering scenes&hellip;</p>
+    <div class="bar" aria-hidden="true"><div class="bar-fill bar-busy"></div></div>
+    <p class="hint center">This takes a moment.</p>
+  </div>
+</div>
+
+<div id="state-results" class="state" data-state="results" hidden>
+  <div class="results" aria-live="polite">
+    <figure class="card hero-card">
+      <img id="hero-img" alt="Your cartoon hero">
+      <figcaption><strong>Your hero</strong> <span id="result-meta"></span></figcaption>
+    </figure>
+    <div id="scene-list" class="scenes"></div>
+    <p class="cost" id="cost-text"></p>
+  </div>
+</div>
+
+{% include "_error.html" %}
+{% endblock %}
+
+{% block bottom_screen %}
+<form id="hw1-form" novalidate>
+  {% include "_form_basic.html" %}
+
+  {% set tier_step = 4 %}
+  {% include "_tier_picker.html" %}
+
+  <label class="consent">
+    <input type="checkbox" id="consent">
+    <span>I have permission to use this photo</span>
+  </label>
+
+  <p id="form-msg" class="form-msg" role="status" aria-live="polite"></p>
+  <p class="price-line" id="price-line">$0.99 per run</p>
+  <button type="submit" id="start-btn" class="pill start">PRESS START</button>
+</form>
+{% endblock %}

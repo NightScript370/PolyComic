@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+homework-*.md
+.venv
+.git
+__pycache__
+.pytest_cache
+.ruff_cache
+tmp_out
+node_modules

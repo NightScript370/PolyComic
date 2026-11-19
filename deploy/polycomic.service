@@ -1,0 +1,33 @@
+# Install to /etc/systemd/system/polycomic.service (scripts/setup_vps.sh does this).
+[Unit]
+Description=PolyComic (FastAPI / uvicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=polycomic
+Group=polycomic
+WorkingDirectory=/opt/polycomic
+EnvironmentFile=/opt/polycomic/.env
+ExecStartPre=/opt/polycomic/.venv/bin/alembic upgrade head
+# Keep a single worker: job progress / SSE state is held in process memory, so
+# multiple workers would not see each other's state. Scale up only after that
+# state moves to a shared store.
+# Port: if you change 7659, change it in deploy/nginx.conf.example and PUBLIC_BASE_URL too.
+ExecStart=/opt/polycomic/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 --port 7659 --workers 1 \
+    --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# ProtectSystem=full keeps /usr, /boot and /etc read-only; /opt stays writable.
+# If you later switch to ProtectSystem=strict, add: ReadWritePaths=/opt/polycomic
+
+[Install]
+WantedBy=multi-user.target

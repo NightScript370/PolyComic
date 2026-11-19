@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}PolyComic - Make your hero{% endblock %}
+{% block scripts %}
+  <script src="{{ static_url('js/form.js') }}" defer></script>
+  <script src="{{ static_url('js/book.js') }}" defer></script>
+{% endblock %}
+
+{% block top_screen %}
+<div id="state-idle" class="state" data-state="idle">
+  <div class="title-card">
+    <p class="title-small">A retro storybook adventure</p>
+    <h1 class="title-big">POLY<br>COMIC</h1>
+    <p class="blink" aria-hidden="true">PRESS START</p>
+    <p class="hint">Add a photo and pick a story on the bottom screen.</p>
+  </div>
+</div>
+
+<div id="state-progress" class="state" data-state="progress" hidden>
+  <div class="progress">
+    <p class="stage" id="stage-text" role="status" aria-live="polite">Building hero&hellip;</p>
+    <div class="bar" id="prog-bar" role="progressbar" aria-label="Book progress" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><div class="bar-fill" id="prog-fill"></div></div>
+    <p class="prog-count" id="prog-count">0 / ? pictures</p>
+    <p class="prog-now" id="prog-now" aria-hidden="true">&nbsp;</p>
+    <ol class="slots" id="slots" aria-label="Pictures"></ol>
+    <p class="hint center">This can take a little while. You can come back to it later from MY BOOKS.</p>
+  </div>
+</div>
+
+<div id="state-book" class="state" data-state="book" hidden>
+  <div class="book">
+    <figure class="card hero-card book-hero">
+      <img id="book-hero-img" alt="Your cartoon hero">
+      <figcaption><strong>Your hero</strong> <span id="hero-tries" class="tries" hidden></span></figcaption>
+    </figure>
+    <div class="viewer" id="viewer" role="group" aria-roledescription="carousel" aria-label="Story book pages" tabindex="-1">
+      <div class="page-frame" id="page-frame">
+        <img id="page-img" alt="">
+        <div class="page-text zone-bottom" id="page-text"><span class="page-tab" id="page-tab" hidden></span><img class="page-portrait" id="page-portrait" alt="" hidden><p id="page-text-p"></p></div>
+      </div>
+      <p class="page-title"><span id="page-title"></span> <span id="page-tries" class="tries" hidden></span></p>
+      <p class="page-caption" id="page-caption"></p>
+      <div class="pager">
+        <button type="button" class="pill small" id="prev-btn" aria-label="Previous page">&laquo; PREV</button>
+        <span class="pager-count" id="pager-count" aria-hidden="true">1 / 1</span>
+        <button type="button" class="pill small" id="next-btn" aria-label="Next page">NEXT &raquo;</button>
+      </div>
+      <input type="range" id="scrub" class="scrub" min="1" max="1" step="1" value="1" aria-label="Go to page">
+      <p class="sr-only" id="page-status" role="status" aria-live="polite"></p>
+    </div>
+    <a class="pill dl" id="pdf-btn" href="#">DOWNLOAD PDF</a>
+    <p class="cost" id="book-cost"></p>
+  </div>
+</div>
+
+{% include "_error.html" %}
+{% endblock %}
+
+{% block bottom_screen %}
+<div class="tabbar" role="tablist" aria-label="Mode">
+  <button type="button" role="tab" id="tab-book" class="tab" aria-selected="true" aria-controls="hw1-form">STORY BOOK</button>
+  <button type="button" role="tab" id="tab-books" class="tab" aria-selected="false" aria-controls="books-panel" tabindex="-1">MY BOOKS</button>
+</div>
+
+<div id="resume-offer" class="resume" role="status" hidden>
+  <p class="resume-text" id="resume-text"></p>
+  <div class="resume-actions">
+    <button type="button" class="pill small" id="resume-yes">WATCH</button>
+    <button type="button" class="pill small ghost" id="resume-no">LATER</button>
+  </div>
+</div>
+
+<section id="books-panel" role="tabpanel" aria-labelledby="tab-books" hidden>
+  <p id="books-empty" class="books-empty" hidden></p>
+  <ul id="book-list" class="book-list"></ul>
+</section>
+
+<form id="hw1-form" novalidate>
+  {% include "_form_basic.html" %}
+
+  <fieldset class="field">
+    <legend class="label">4. Story</legend>
+    <div class="cartridges stories" role="radiogroup" aria-label="Story">
+      <label class="cart">
+        <input type="radio" name="story" value="jack" checked>
+        <span class="cart-body"><span class="cart-name">Jack and the Beanstalk</span><span class="cart-desc">A giant climb, a golden goose.</span></span>
+      </label>
+      <label class="cart">
+        <input type="radio" name="story" value="red">
+        <span class="cart-body"><span class="cart-name">Little Red Riding Hood</span><span class="cart-desc">A basket, a forest, a wolf.</span></span>
+      </label>
+    </div>
+  </fieldset>
+
+  <p class="label sect">5. About your hero</p>
+  <div class="field">
+    <label class="label" for="hero-name">Hero name</label>
+    <input type="text" id="hero-name" class="txt" maxlength="40" autocomplete="off" aria-required="true" required>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label class="label" for="pronouns">Pronouns</label>
+      <select id="pronouns" class="txt">
+        <option value="he">he/him</option>
+        <option value="she">she/her</option>
+        <option value="they" selected>they/them</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="label" for="age">Age (1-17)</label>
+      <input type="number" id="age" class="txt" min="1" max="17" inputmode="numeric">
+    </div>
+  </div>
+  <details class="more">
+    <summary>More about your hero (optional)</summary>
+    <div class="row2">
+      <div class="field"><label class="label" for="fav-color">Fav colour</label><input type="text" id="fav-color" class="txt" maxlength="40"></div>
+      <div class="field"><label class="label" for="fav-food">Fav food</label><input type="text" id="fav-food" class="txt" maxlength="40"></div>
+      <div class="field"><label class="label" for="fav-game">Fav game</label><input type="text" id="fav-game" class="txt" maxlength="40"></div>
+      <div class="field"><label class="label" for="fav-animal">Fav animal</label><input type="text" id="fav-animal" class="txt" maxlength="40"></div>
+    </div>
+    <div class="field">
+      <label class="label" for="about">About me</label>
+      <textarea id="about" class="txt" rows="3" maxlength="500" aria-describedby="about-count"></textarea>
+      <p class="counter" id="about-count" aria-live="off">0 / 500</p>
+    </div>
+  </details>
+
+  {% set tier_step = 6 %}
+  {% include "_tier_picker.html" %}
+
+  <label class="consent">
+    <input type="checkbox" id="consent">
+    <span>I have permission to use this photo</span>
+  </label>
+
+  <p id="form-msg" class="form-msg" role="status" aria-live="polite"></p>
+  <p class="price-line" id="price-line">This book costs $0.99</p>
+  <button type="submit" id="start-btn" class="pill start">PRESS START</button>
+</form>
+{% endblock %}

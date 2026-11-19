@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  {% if noindex %}<meta name="robots" content="noindex">{% endif %}
+  <title>{% block title %}PolyComic{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ static_url('css/app.css') }}">
+  <link rel="stylesheet" href="{{ static_url('css/pages.css') }}">
+  <script src="{{ static_url('js/common.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" id="brand-link" href="/" aria-label="PolyComic home">
+      <svg class="brand-logo" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+        <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="#4aa3ff"/>
+        <polygon points="16,2 29,9 16,16" fill="#9fd2ff"/>
+        <polygon points="16,16 29,9 29,23" fill="#2f7fd6"/>
+        <polygon points="16,16 29,23 16,30" fill="#1f5fae"/>
+        <polygon points="16,16 3,23 3,9" fill="#6bb7ff"/>
+        <rect x="14" y="14" width="4" height="4" fill="#fff"/>
+      </svg>
+      <span class="brand-name">PolyComic</span>
+    </a>
+    <div class="auth" id="auth-slot">
+      <a class="balance-chip" id="balance-chip" href="/wallet" hidden aria-label="Open wallet"></a>
+      <a class="admin-link" id="admin-link" href="/admin" hidden>ADMIN</a>
+      <a class="pill small auth-in" id="signin-link" href="/auth/login" hidden>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="5" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h7M12 8v3M14.5 8v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span>SIGN IN WITH GOOGLE</span>
+      </a>
+      <div class="auth-user" id="auth-user" hidden>
+        <span class="avatar" id="avatar" aria-hidden="true"></span>
+        <span class="auth-name" id="auth-name" hidden></span>
+        <button type="button" class="pill small auth-out" id="signout-btn">SIGN OUT</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="device-wrap">
+    <div class="device" role="group" aria-label="{% block device_label %}Storybook maker{% endblock %}">
+      <section class="screen screen-top" aria-label="Preview screen">
+        <div class="statusbar" aria-hidden="true">
+          <span class="sb-title">{% block top_title %}PREVIEW{% endblock %}</span>
+          <span class="sb-right"><span class="clock" data-clock>--:--</span><span class="battery"><i></i><i></i><i></i></span></span>
+        </div>
+        <div class="screen-body">
+          {% block top_screen %}{% endblock %}
+        </div>
+      </section>
+
+      <div class="hinge" aria-hidden="true"><span></span><span></span><span></span></div>
+
+      <section class="screen screen-bottom" aria-label="Controls screen">
+        <div class="statusbar" aria-hidden="true">
+          <span class="sb-title">{% block bottom_title %}CONTROLS{% endblock %}</span>
+          <span class="sb-right"><span class="battery"><i></i><i></i><i></i></span></span>
+        </div>
+        <div class="screen-body">
+          {% block bottom_screen %}{% endblock %}
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>PolyComic &middot; personalised retro storybooks. Only upload photos you have permission to use.</p>
+  </footer>
+</body>
+</html>
