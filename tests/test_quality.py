@@ -118,6 +118,20 @@ def test_placement_faces_weighted_when_everything_is_blocked():
     assert p.zone.zone == "bottom" and p.blocked and p.blocker_phrase == "every face"
 
 
+def test_placement_all_blocked_never_covers_face_to_spare_object():
+    # Jack page 5: cottage box in the bottom fifth (>20% covered), hero face small in the
+    # top zone, hero figure in the middle. Covering the face must never win.
+    s05 = get_layout("s05_vertical_ascent")  # zones: bottom, then top
+    cottage = obj(0.3, 0.70, 0.4, 0.25, "tiny cottage")
+    boxes = [cottage, face(0.45, 0.05, 0.05, 0.05),
+             Box("hero", 0.35, 0.35, 0.3, 0.3, "figure")]
+    p = place_text(s05, boxes)
+    assert p.zone.zone == "bottom" and p.blocked and not p.face_overlap
+    assert p.blocker is cottage
+    # without the face the top zone is clear, so the bottom is still not preferred
+    assert place_text(s05, boxes[:1]).zone.zone == "top"
+
+
 def test_placement_middle_when_top_and_bottom_covered():
     both = [face(0.4, 0.8, 0.1, 0.1), face(0.4, 0.1, 0.1, 0.1)]
     p = place_text(S01, both)

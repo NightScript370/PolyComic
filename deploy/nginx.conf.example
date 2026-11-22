@@ -14,7 +14,8 @@ server {
     }
 
     # Server-Sent Events (progress streams)
-    location /api/books/ {
+    # No trailing slash: otherwise nginx 301-redirects /api/books to /api/books/ and loops with the app's redirect.
+    location /api/books {
         proxy_pass http://127.0.0.1:7659;
         proxy_http_version 1.1;
         proxy_set_header Connection "";

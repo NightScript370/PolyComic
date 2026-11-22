@@ -425,7 +425,7 @@ themselves are written for PostgreSQL (`bytea` / `json`).
 ## Deploy
 
 - VPS + nginx: run `docker compose up -d`, then adapt `deploy/nginx.conf.example`
-  (domain, TLS). The app binds to 127.0.0.1:7659 only. `/api/books/` is configured for SSE.
+  (domain, TLS). The app binds to 127.0.0.1:7659 only. `/api/books` is configured for SSE.
 - Render: use `render.yaml` as a Blueprint; it creates a Docker web service and a Postgres DB.
   Fill in the secrets marked `sync: false` in the dashboard. Set `PUBLIC_BASE_URL` to the service URL
   and add `<PUBLIC_BASE_URL>/auth/callback` to the Google OAuth client. Render's

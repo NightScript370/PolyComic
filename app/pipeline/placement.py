@@ -15,7 +15,10 @@ Rules:
 2. Otherwise the least-covering acceptable zone (not ``blocked``), weighted overlap with
    faces counted x3; ties go to the earlier candidate, so middle only wins when it
    overlaps less than the alternatives.
-3. Otherwise (every candidate blocked) the least-covering zone, flagged ``blocked``.
+3. Otherwise (every candidate blocked) the least severe zone, flagged ``blocked``:
+   zones touching no face beat zones touching a face (a face is never covered to spare an
+   object), then zones touching no figure beat ones that do, then least weighted overlap,
+   then the earlier candidate.
 
 Character bodies (``figure`` boxes) matter only for the ``middle`` band: text in the
 middle of the picture must never cover any character's body, so a middle zone that
@@ -228,7 +231,13 @@ def place_text(layout: Layout | None, boxes: Iterable[Box] = (), pad: float = PA
         best = clear[0]
     else:
         ok = [s for s in scored if s.blocker is None]
-        best = min(ok or scored, key=lambda s: (s.weighted, s.index))
+        if ok:
+            best = min(ok, key=lambda s: (s.weighted, s.index))
+        else:
+            # Every zone blocked: covering a face is worse than covering a figure, which
+            # is worse than covering an object; then least overlap, then preference.
+            best = min(scored, key=lambda s: (
+                s.face_hit is not None, s.figure_hit is not None, s.weighted, s.index))
     hint = None
     if best.blocker is not None and best.zone.zone == "middle" and best.index != 0:
         first = scored[0]
