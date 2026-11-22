@@ -159,6 +159,12 @@ class _Grade(BaseModel):
         description="one short correction per character with a clearly wrong face, e.g. "
                     "'the wolf grins; he must look dazed: eyes spinning, mouth open in an "
                     "oof'; empty if all match")
+    style_technique: str = Field(
+        default="",
+        description="FIRST name, in a few words, the rendering technique of the WHOLE of "
+                    "image 1 (e.g. 'low-poly 3D render with flat facets', 'pixel art', "
+                    "'flat 2D painted illustration', 'watercolour', 'smooth modern 3D "
+                    "film render'); then decide style_match")
     style_match: bool = Field(
         default=True,
         description="true if image 1 is rendered in the same art style / rendering "
@@ -254,6 +260,11 @@ class _Traits(BaseModel):
                                       "blue hijab', 'a red baseball cap'; empty if none")
     facial_hair: bool = Field(description="true if the person has a beard or moustache")
     hair_covered: bool = Field(description="true if headwear hides most or all of the hair")
+    hair_style: str = Field(default="",
+                            description="the hair LENGTH and cut as photographed, in a few "
+                                        "words, e.g. 'short, tousled, side parting', 'chin-"
+                                        "length bob', 'long and loose', 'buzz cut'; empty if "
+                                        "the hair is not visible")
 
 
 GRADE_INSTRUCTIONS = """You are the quality checker for a children's picture book.
@@ -287,7 +298,9 @@ Score honestly; a typical acceptable picture scores 0.7-0.9.
   straight hair) is a different child: set that field to false and say what is wrong
   in identity_notes. If the hero is missing, set all three to true and score likeness 0.
 - hair_texture_match - judge this one carefully. Compare the hair TYPE category in the
-  photo and in image 1: straight, wavy, curly or coily (ignore length and styling).
+  photo and in image 1: straight, wavy, curly or coily (ignore styling; length counts only
+  when a measured hair length is given below: then a clearly different length, e.g.
+  shoulder-length where the photo has short hair, is a mismatch - set false).
   Look closely at short hair: short, tight curls or coils close to the head are curly
   (or coily), not straight, however short they are cut. Stylised hair is often one
   solid shape (low-poly, pixel art) and that is fine, but when the photo shows curly
@@ -357,14 +370,19 @@ Score honestly; a typical acceptable picture scores 0.7-0.9.
   awake, roaring giant when he must be asleep. Intensity may differ a little. One
   concrete correction per character in cast_expression_notes. True if none is listed or
   the face is not visible.
-- style_match - compare the RENDERING STYLE of the whole of image 1 with the HERO
-  REFERENCE image (when given; it is drawn in the book's style) and the style
-  description below: the same technique (e.g. low-polygon 3D with facets and pixelated
-  textures, or crisp pixel art). A clearly different rendering is false - a flat 2D
-  painting, drawing, watercolour or cartoon illustration in a 3D book, a smooth modern
-  3D film look in a low-poly book, a smooth painting in a pixel-art book, or characters
-  in one technique pasted on a background in another. Lighting, colour mood, camera
-  distance and level of detail are NOT style differences. Say what differs in
+- style_match - a DEFINITE error, checked on every picture. First fill style_technique
+  with the technique of the WHOLE of image 1, then compare it with the HERO REFERENCE
+  image (when given; it is drawn in the book's style) and the book art style given
+  below: the same technique (e.g. low-polygon 3D with visible facets and pixelated
+  textures, or crisp pixel art). A different rendering is false - a flat 2D or painterly
+  illustration, drawing, watercolour, gouache, vector or storybook cartoon in a 3D book
+  (soft brush strokes, painted textures and outlines instead of polygon facets, or
+  lighting that is painted instead of rendered, give it away), a smooth modern 3D film
+  look in a low-poly book, a smooth painting in a pixel-art book, or characters in one
+  technique pasted on a background in another. When in doubt whether a picture is a
+  painting or a render, compare it with the hero reference: if the reference shows hard
+  polygon facets and the picture looks hand-painted, it is false. Lighting, colour mood,
+  camera distance and level of detail are NOT style differences. Say what differs in
   style_notes (name both techniques).
 - fidelity (0..1): does image 1 show what the description asks for, including every
   item in the must-be-visible list, with no extra limbs, merged bodies or broken faces?
@@ -519,7 +537,10 @@ needed to keep them recognisable and to match illustrated family members:
 - headwear: a short description with colour if they wear a head covering (skullcap /
   kippah, hijab, turban, headscarf, cap, hat ...), else empty;
 - facial_hair: true if they have a beard or moustache;
-- hair_covered: true if the headwear hides most or all of the hair."""
+- hair_covered: true if the headwear hides most or all of the hair;
+- hair_style: the hair length and cut as photographed in a few words (e.g. "short,
+  tousled, side parting", "shoulder-length, wavy, centre parting", "buzz cut"); empty if
+  the hair is not visible."""
 
 
 def _boxes(raw: list[_Box]) -> list[Box]:
@@ -536,8 +557,9 @@ def _boxes(raw: list[_Box]) -> list[Box]:
     return out
 
 
-def traits_note(traits: PhotoTraits | None) -> str:
-    """'Measured from the original photo: light olive skin, straight black hair. ...'"""
+def traits_note(traits: PhotoTraits | None, hero_age: str = "") -> str:
+    """'Measured from the original photo: light olive skin, straight black hair. ...'
+    ``hero_age`` ("a teenager about 15 years old") for a teen hero."""
     if traits is None:
         return ""
     from app.pipeline.family import hair_phrase, skin_phrase
@@ -547,20 +569,42 @@ def traits_note(traits: PhotoTraits | None) -> str:
         hair_bit = f"{hair} hair, mostly covered by headwear (judge only the hair that shows)"
     else:
         hair_bit = f"{hair} hair" if hair else ""
+    style = "" if traits.hair_covered else (traits.hair_style or "").strip()
+    if hair_bit and style:
+        hair_bit += f", {style}"
     bits = [p for p in (f"{skin_phrase(traits)} skin" if skin_phrase(traits) else "",
                         hair_bit) if p]
     if not bits:
         return ""
     note = ("Measured from the original photo: " + ", ".join(bits) + ". Use this for the "
-            "identity checks (the hero should keep the same skin tone, hair colour and hair "
-            "type).")
-    if not traits.is_child:
+            "identity checks (the hero should keep the same skin tone, hair colour, hair type"
+            + (" and hair length" if style else "") + ").")
+    if hero_age:
+        note += (f" The hero is drawn as {hero_age} who looks like the person in the photo "
+                 "(same face and same hair length, style and colour) - not a small child "
+                 "and not a grown-up.")
+    elif not traits.is_child:
         who = {"teen": "a teenager", "elderly": "an elderly person"}.get(
             traits.age_group, "an adult")
         note += (f" The photo shows {who}: the hero is drawn as a "
                  "child version of them (about 7-9, no beard, no wrinkles) - that is "
                  "expected, not a mismatch.")
     return note
+
+
+def hero_age_note(hero_age: str) -> str:
+    """Overrides the child-age expectations of the grade instructions for a teen hero."""
+    a = (hero_age or "").strip()
+    if not a:
+        return ""
+    return (f"\nHERO AGE OVERRIDE: in this book the hero is {a}, NOT a child of 6-10. "
+            "Wherever the instructions above say the hero is a child version of about 7-9 / "
+            "6-10, read it as this age: a clearly teenage face and body (not a small child, "
+            "not a grown-up), with no beard, moustache or wrinkles. hero_child_ok is true "
+            "when the hero looks like this teenager, false for a small child, a grown-up or "
+            "an elderly person. Do not lower likeness because the hero is a teenager, "
+            "and a teen hero whose hair is shorter / longer / lighter / darker than in the "
+            "photo is a hair mismatch.")
 
 
 def props_note(props) -> str:
@@ -838,7 +882,7 @@ class GeminiVisionGrader:
     async def grade(self, image, *, hero, photo, caption, must_be_visible, subject="page",
                     traits: PhotoTraits | None = None, props=(), family_ref=None, family=(),
                     cast_refs=(), cast=(), expression="", hero_items=(), hero_outfit="",
-                    presence=(), style="", cast_expressions=()):
+                    presence=(), style="", cast_expressions=(), hero_age=""):
         parts = [self._part(image, first=True)]
         if hero is not None:
             refs = ("\nImage 2 is the stylised hero character reference (the HERO "
@@ -868,8 +912,9 @@ class GeminiVisionGrader:
         expr = expression if subject == "page" else ""
         cast_expr = ([x for x in cast_expressions if x and x.strip()]
                      if subject == "page" else [])
-        known = traits_note(traits)
-        what = ("a full-body character reference sheet of the hero child alone on a plain "
+        known = traits_note(traits, hero_age)
+        what = ("a full-body character reference sheet of the hero "
+                f"{'teenager' if hero_age else 'child'} alone on a plain "
                 "background" if subject == "hero" else "a story page")
         text = (GRADE_INSTRUCTIONS.format(refs=refs)
                 + f"\n\nImage 1 should be {what}. Description: {caption}"
@@ -884,6 +929,7 @@ class GeminiVisionGrader:
                 + hero_look_note(hero_items, hero_outfit)
                 + presence_note(presence)
                 + (f"\n{known}" if known else "")
+                + hero_age_note(hero_age)
                 + (HERO_SHEET_RULES if subject == "hero" else ""))
         parsed, meta = await self._json_call([text, *parts], _Grade)
         contradictions = [c.strip()[:200] for c in parsed.contradictions if c.strip()]
@@ -981,6 +1027,7 @@ class GeminiVisionGrader:
             headwear=_item(parsed.headwear),
             facial_hair=bool(parsed.facial_hair),
             hair_covered=bool(parsed.hair_covered),
+            hair_style=_item(parsed.hair_style),
         )
 
 

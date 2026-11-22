@@ -151,6 +151,17 @@ async def save_attempt(s: AsyncSession, row: PageAttempt) -> None:
     await s.commit()
 
 
+async def get_attempt_thumb(s: AsyncSession, book_id: str, user_id: int, page: int,
+                            attempt: int) -> bytes | None:
+    """The 160 px JPEG of one generation of a picture (owner only), or None."""
+    from app.db.models import Book
+
+    q = (select(PageAttempt.thumb_jpeg).join(Book, Book.id == PageAttempt.book_id)
+         .where(PageAttempt.book_id == book_id, PageAttempt.page == page,
+                PageAttempt.attempt == attempt, Book.user_id == user_id))
+    return (await s.execute(q)).scalars().first()
+
+
 async def mark_chosen(s: AsyncSession, book_id: str, page: int, attempt: int) -> None:
     await s.execute(update(PageAttempt).where(
         PageAttempt.book_id == book_id, PageAttempt.page == page,

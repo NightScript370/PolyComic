@@ -184,7 +184,7 @@ async def test_book_budget_hero_gets_two_attempts_pages_stop_after_one():
     hooks = BudgetHooks()
     plan = plan_book("jack", [1, 2, 4], "n64", 2)
     gen = BookGenerator(plan, HERO, await _photo(), hero_provider=provider, grader=grader,
-                        hooks=hooks, time_budget_s=5.0, clock=clock)
+                        hooks=hooks, time_budget_s=5.0, hard_cap_s=70, clock=clock)
     book = await gen.run()
     assert HERO_MIN_ATTEMPTS == 2
     assert book.hero_attempts == 2  # budget gone after attempt 1, the hero still retries once
@@ -206,14 +206,14 @@ async def test_book_budget_not_reached_gives_three_attempts():
     grader = ScriptedGrader({story.page(1).caption[:30]: [always_fail]})
     plan = plan_book("jack", [1], "n64", 2)
     gen = BookGenerator(plan, HERO, await _photo(), hero_provider=SlowFake(clock),
-                        grader=grader, time_budget_s=1000.0, clock=clock)
+                        grader=grader, time_budget_s=1000.0, hard_cap_s=0, clock=clock)
     book = await gen.run()
     assert book.pages[0].attempts == 3 and not book.pages[0].budget_stopped
 
 
 def test_budget_settings_defaults(monkeypatch):
     s = Settings()
-    assert s.quality_time_budget_s == 45.0 and s.book_time_target_s == 60.0
+    assert s.quality_time_budget_s == 36.0 and s.book_time_target_s == 55.0
     assert s.quality_max_attempts == 3
     assert s.grader_thinking_level == "low" and s.grader_image_max_side == 768
     assert s.gemini_vision_model == "gemini-3.8-flash"

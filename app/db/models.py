@@ -153,8 +153,13 @@ class ApiCall(Base):
 
 # WalletEntry.kind values
 TOPUP, CHARGE, RECREDIT, REFUND = "topup", "charge", "recredit", "refund"
+# Wallet credit for one finished book, approved by an admin (migration 0013): no card refund.
+BOOK_REFUND = "book_refund"
 # RefundRequest.status values
 R_PENDING, R_APPROVED, R_REJECTED, R_FAILED = "pending", "approved", "rejected", "failed"
+# RefundRequest.kind values: a top-up returned to the card, or one book's charge returned
+# to the wallet.
+RK_TOPUP, RK_BOOK = "topup", "book"
 
 
 class WalletEntry(Base):
@@ -197,7 +202,10 @@ class RefundRequest(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    # kind "topup": the top-up entry. kind "book": the book's CHARGE entry.
     topup_entry_id: Mapped[int] = mapped_column(ForeignKey("wallet_entries.id"))
+    kind: Mapped[str] = mapped_column(String(16), default=RK_TOPUP, server_default=RK_TOPUP)
+    book_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     amount_cents: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), default=R_PENDING)
     admin_user_id: Mapped[int | None] = mapped_column(

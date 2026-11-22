@@ -21,6 +21,11 @@ Events (SSE ``event:`` name -> JSON ``data``):
            attempts = generations actually made (1..3); scores = {likeness, fidelity,
            passed} of the chosen attempt, or null when the picture was not graded;
            budget_stopped = true when the time budget stopped further generations.
+  preview  {page, attempt, passed, thumb_url}   a picture's accepted attempt as soon as it
+           exists: its first passing attempt, or the best attempt so far while retries
+           are still waiting / running; sent again (new attempt / thumb_url) when a later
+           retry replaces it. page 0 is never previewed (the hero has its own event). The
+           final ``page`` event replaces it. Not replayed in the snapshot.
   done     {pdf_url}
   error    {message}
 """
@@ -108,6 +113,15 @@ def speech_for(story_id: str, page: int, text: str, hero_name: str,
     if not any(who for _, who in runs):
         return []
     return [[t, spoken] for t, spoken in display_runs(runs)]
+
+
+def attempt_thumb_url(book_id: str, page: int, attempt: int) -> str:
+    return f"/api/books/{book_id}/pages/{page}/attempts/{attempt}/thumb.jpg"
+
+
+def preview_event(book_id: str, page: int, attempt: int, passed: bool) -> dict:
+    return {"page": page, "attempt": attempt, "passed": passed,
+            "thumb_url": attempt_thumb_url(book_id, page, attempt)}
 
 
 def page_event(book_id: str, p: BookPage, scores: dict | None = None,

@@ -359,6 +359,25 @@
     li.setAttribute('aria-label', label + (attempts ? ', ' + attempts + (attempts === 1 ? ' attempt' : ' attempts') : ''));
     updateBar();
   }
+  // Live preview: a picture's accepted / best-so-far attempt, shown in its slot while the
+  // picture is still being checked or retried (the final 'page' event replaces it).
+  function previewSlot(d) {
+    if (typeof d.page !== 'number' || !d.thumb_url) return;
+    ensureSlots(d.page + 1);
+    const li = slotsEl.children[d.page];
+    if (li.classList.contains('filled')) return;
+    let im = li.querySelector('img.pv');
+    if (!im) {
+      im = document.createElement('img');
+      im.className = 'pv';
+      im.alt = 'Page ' + d.page + ' preview';
+      li.insertBefore(im, li.firstChild);
+      li.classList.add('pop');
+    }
+    if (im.getAttribute('src') !== d.thumb_url) im.src = d.thumb_url;
+    li.dataset.attempt = String(d.attempt || 1);
+    li.classList.toggle('preview-ok', !!d.passed);
+  }
   const filledCount = () => slotsEl.querySelectorAll('.slot.filled').length;
   function updateBar(stageDone) {
     if (!prog) return;
@@ -411,6 +430,7 @@
       prog.hero = d.thumb_url; prog.heroAttempts = d.attempts; prog.heroScores = d.scores;
       fillSlot(0, d.thumb_url, 'Your hero', d.attempts, d.scores);
     });
+    es.addEventListener('preview', (e) => { const d = parse(e); if (d && prog) previewSlot(d); });
     es.addEventListener('page', (e) => {
       const d = parse(e); if (!d || !prog || !d.page) return;
       prog.pages[d.page] = d; // keyed by page number: replays are idempotent
@@ -497,6 +517,18 @@
         w.addEventListener('click', () => watch(b.book_id, DEMO ? 'demo://' + b.book_id : null));
         act.appendChild(w);
       }
+      const rf = b.refund || {};
+      if (rf.status) {
+        const label = { pending: 'REFUND PENDING', refunded: 'REFUNDED ' + PC.money(rf.amount_cents), denied: 'REFUND DENIED' }[rf.status] || String(rf.status).toUpperCase();
+        info.appendChild(el('span', 'chip ' + (rf.status === 'pending' ? 'pending' : 'muted'), label));
+      }
+      if (rf.eligible) {
+        const rq = el('button', 'pill small ghost', 'REQUEST REFUND');
+        rq.type = 'button';
+        rq.setAttribute('aria-label', 'Request a refund of ' + PC.money(rf.amount_cents) + ' for ' + (b.title || 'book'));
+        rq.addEventListener('click', () => requestBookRefund(b, rf));
+        act.appendChild(rq);
+      }
       if (b.status === 'done' || b.status === 'failed') {
         const del = el('button', 'pill small ghost', 'DELETE');
         del.type = 'button';
@@ -508,6 +540,22 @@
       listEl.appendChild(li);
     });
   }
+  /* Ask for one book's price back in the wallet; an admin decides. The book stays downloadable. */
+  function requestBookRefund(b, rf) {
+    PC.dialog({
+      title: 'REQUEST REFUND',
+      text: 'Ask for ' + PC.money(rf.amount_cents) + ' for "' + (b.title || 'this book') + '" to go back in your wallet? An admin reviews it. You keep the book and its PDF.',
+      ok: 'REQUEST', cancel: 'CANCEL'
+    }).then((res) => {
+      if (!res) return;
+      return PC.api('POST', '/api/wallet/book-refund-requests', { book_id: b.book_id }).then((r) => {
+        if (!r.ok) PC.showError((r.data && r.data.error) || 'Could not request that refund.');
+        return loadBooks().then(refreshWallet);
+      });
+    }).catch(() => PC.showError('Could not reach the server. Please try again.'));
+  }
+  /* A refund may be approved while this page is open: re-read the list and balance when the tab is shown again. */
+  PC.onWalletRefreshed = () => { if (PC.me) loadBooks(); };
   function loadBooks() {
     if (PC.me === null) {
       listEl.innerHTML = '';
@@ -523,6 +571,7 @@
       if (r.status === 401) { PC.me = null; return loadBooks(); }
       if (!r.ok || !Array.isArray(r.data)) throw new Error('bad');
       renderBooks(r.data);
+      PC.loadWallet(true); /* viewing the history: keep the header balance current (a refund may have been approved) */
       return r.data;
     }).catch(() => {
       listEl.innerHTML = '';

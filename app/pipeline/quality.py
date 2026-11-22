@@ -85,6 +85,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 
 from app.pipeline.family import (
+    HeroLook,
     hair_colour_phrase,
     hair_texture_phrase,
     kept_items_phrase,
@@ -113,6 +114,17 @@ CAST_FIX = ("every supporting character must look exactly like their reference s
 HERO_CHILD_FIX = ("the hero must be the CHILD from the hero reference, about 7 to 9 years old - "
                   "a child's face and body, no beard, moustache or wrinkles, never a grown-up "
                   "or elderly person")
+
+
+def hero_age_fix(look: HeroLook | None = None) -> str:
+    """Correction for a failed ``hero_child_match``: 'child about 7 to 9' or - for a teen
+    hero - 'teenager about N'."""
+    if look is None or not look.teen:
+        return HERO_CHILD_FIX
+    return (f"the hero must be the TEENAGER from the hero reference, about {look.age} years "
+            "old - a teenager's face and body with the same hair length, hairstyle and "
+            "colour, no beard, moustache or wrinkles, never a small child, a grown-up or an "
+            "elderly person")
 EXPRESSION_FIX = ("the hero's expression must clearly show the emotion this page asks for - "
                   "the hero reference sets who the hero is, not the expression")
 STYLE_FIX = ("render the whole picture in exactly the same art style as the hero reference "
@@ -220,11 +232,11 @@ def tolerate_headwear(grade: GradeResult, traits: PhotoTraits | None) -> GradeRe
 
 
 def hero_look_issues(grade: GradeResult, traits: PhotoTraits | None = None,
-                     hero_outfit: str = "") -> list[str]:
-    """Corrections for failed hero look checks (child, personal items, outfit)."""
+                     hero_outfit: str = "", look: HeroLook | None = None) -> list[str]:
+    """Corrections for failed hero look checks (age, personal items, outfit)."""
     out: list[str] = []
     if not grade.hero_child_match:
-        out.append(HERO_CHILD_FIX)
+        out.append(hero_age_fix(look))
     if not grade.hero_items_match:
         items = kept_items_phrase(traits)
         out.append(f"the hero must wear {items} exactly like in the hero reference - never "
@@ -242,7 +254,8 @@ def hero_look_issues(grade: GradeResult, traits: PhotoTraits | None = None,
 
 
 def identity_issues(grade: GradeResult, traits: PhotoTraits | None = None,
-                    family_hint: str = "", hero_outfit: str = "") -> list[str]:
+                    family_hint: str = "", hero_outfit: str = "",
+                    look: HeroLook | None = None) -> list[str]:
     """Concrete corrections for the identity checks that failed (empty if all match).
     ``family_hint`` (``app.pipeline.prompts.family_correction``) names what each family
     member on the page must look like; used when ``family_match`` failed. The hero look
@@ -260,14 +273,16 @@ def identity_issues(grade: GradeResult, traits: PhotoTraits | None = None,
         if not grade.hair_colour_match and not colour:
             colour = "the same colour"
         hair = " and ".join(p for p in (texture, colour) if p)
-        out.append(f"the hero's hair must be {hair} like in the photo")
+        style = (traits.hair_style or "").strip() if traits and not traits.hair_covered else ""
+        out.append(f"the hero's hair must be {hair} like in the photo"
+                   + (f" ({style})" if style else ""))
     if not grade.hero_hair_match:
         out.append(HERO_HAIR_FIX)
     if out and grade.identity_notes.strip():
         out.append(grade.identity_notes.strip()[:200])
-    look = hero_look_issues(grade, traits, hero_outfit)
-    out += look
-    if look and grade.hero_look_notes.strip():
+    looks = hero_look_issues(grade, traits, hero_outfit, look)
+    out += looks
+    if looks and grade.hero_look_notes.strip():
         out.append(grade.hero_look_notes.strip()[:200])
     if not grade.family_match:
         out.append(family_hint.strip() or FAMILY_FIX)
@@ -289,6 +304,7 @@ def evaluate(
     hero_outfit: str = "",
     style_hint: str = "",
     cast_expression_hint: str = "",
+    hero_look: HeroLook | None = None,
 ) -> Check:
     """Pass/fail for one graded picture, with corrective hints for the next attempt.
     ``traits`` (the photo's measured skin tone / hair) make identity corrections concrete;
@@ -298,7 +314,7 @@ def evaluate(
     not used (``tolerate_headwear``); ``hero_outfit`` makes an outfit correction concrete."""
     tolerate_headwear(grade, traits)
     contra = [c.strip() for c in grade.contradictions if c and c.strip()]
-    identity = [i for i in identity_issues(grade, traits, family_hint, hero_outfit)
+    identity = [i for i in identity_issues(grade, traits, family_hint, hero_outfit, hero_look)
                 if i not in contra]
     if not grade.style_match:
         identity.insert(0, style_hint.strip() or STYLE_FIX)

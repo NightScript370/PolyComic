@@ -58,6 +58,9 @@ class JobInput:
     photo: bytes
     charge_entry_id: int | None = None  # wallet charge to re-credit if the book fails
     cost_cap_usd: float = 0.0  # the tier's per-book cost cap (0 = none)
+    # ``time.monotonic()`` when POST /api/books arrived: the end-to-end clock (upload ->
+    # PDF ready) the hard cap is measured from. None = the job's own start.
+    requested_at: float | None = None
 
 
 @dataclass
@@ -138,6 +141,9 @@ class JobHooks(Hooks):
         self.total = total
         self.max_attempts = max_attempts
         self.pages_done = 0
+        # Attempts so far per picture, to preview the best one as soon as it exists.
+        self._attempts: dict[int, list[quality.Attempt]] = {}
+        self._previewed: dict[int, int] = {}
 
     def publish(self, event: str, data: dict) -> None:
         broker.publish(self.book_id, event, data)
@@ -208,6 +214,23 @@ class JobHooks(Hooks):
             chosen=False, est_cost_usd=round(cost, 6), rescued=a.rescued,
         )
         await _db(repo_assets.save_attempt, row)
+        self.preview(page, a)
+
+    def preview(self, page: int, a: quality.Attempt) -> None:
+        """Publish the picture's best attempt so far (its first passing attempt, or the
+        best-scoring one) right after it was saved, so its thumbnail shows long before
+        the picture's loop - and the retry phase - is over. Sent again when a later
+        attempt becomes the best."""
+        if page == HERO_PAGE or a.image is None:
+            return
+        tried = self._attempts.setdefault(page, [])
+        tried.append(a)
+        best = quality.pick_best(tried)
+        if self._previewed.get(page) == best.n:
+            return
+        self._previewed[page] = best.n
+        self.publish("preview", progress.preview_event(self.book_id, page, best.n,
+                                                       best.passed))
 
     async def budget_stopped(self, page: int, chosen: quality.Attempt) -> None:
         await _db(repo_assets.mark_budget_stopped, self.book_id, page, chosen.n)
@@ -276,7 +299,10 @@ class BookJob:
         book_id_var.set(self.book_id)
         user_id_var.set(self.job.user_id)
         started = time.perf_counter()
-        started_mono = time.monotonic()  # the quality-loop time budget counts from here
+        # The quality-loop time budget and hard cap count from the REQUEST (upload,
+        # photo processing and any wait before the job are part of the reviewer's clock).
+        started_mono = (self.job.requested_at if self.job.requested_at is not None
+                        else time.monotonic())
         plan = self.job.plan
         log.info("book job start story=%s pages=%s", plan.story.id, [p.page for p in plan.pages])
         gen = BookGenerator(
@@ -301,11 +327,14 @@ class BookJob:
             await hooks.stage("done", self.total, persist=False)
             self.publish("done", {"pdf_url": progress.pdf_url(done_book), "preset": plan.preset})
             self.timings["total"] = round(time.perf_counter() - started, 3)
+            e2e = round(time.monotonic() - started_mono, 3)
+            self.timings["end_to_end"] = e2e
             log.info("book job done timings=%s est_cost=$%.4f", self.timings, cost)
+            log.info("book end-to-end (request arrival -> PDF ready) %.1fs", e2e)
             target = get_settings().book_time_target_s
-            if self.timings["total"] > target:
-                log.warning("book took %.1fs (target %.0fs) timings=%s",
-                            self.timings["total"], target, self.timings)
+            if e2e > target:
+                log.warning("book took %.1fs end to end (target %.0fs) timings=%s",
+                            e2e, target, self.timings)
         except asyncio.CancelledError:
             log.warning("book job cancelled")
             await self.recredit("cancelled")

@@ -111,6 +111,11 @@ Top-ups are credited once per Checkout Session, whether the webhook or the succe
 arrives first. Refunds: the user requests one for a top-up (up to the unspent balance), an
 admin approves (Stripe refund + ledger entry) or rejects it at `/admin`. Migration: `0003`.
 
+Per-book refunds: the buyer asks from MY BOOKS (finished or failed-but-charged book, paid
+price only, one decision per book); an admin approves at `/admin` (the book's price goes back
+to the wallet as a `book_refund` ledger entry, no card refund; the book stays downloadable) or
+denies. Same `refund_requests` table, `kind = book`. Migration: `0013`.
+
 ## API (M3)
 
 All `/api/books*` routes and `/api/hw1/generate` need sign-in (401 `{"error": "Please sign in."}`).
@@ -136,8 +141,10 @@ an ERROR naming the likely cause. Such a quota error is not retried by the quali
 | `GET /api/me` | `{"user": {id, name, email, picture} \| null}` |
 | `POST /api/books` | multipart: `photo`, `story` (jack\|red), `style`, `detail`, `name`, `pronouns`, `age`, `fav_color`, `fav_food`, `fav_game`, `fav_animal`, `about`, `tier` (professional\|cost_efficient, default cost_efficient; anything else 400). Charges the tier's price first. 202 `{book_id, events_url}`; 402 `{error, balance_cents, price_cents}` (the tier's price) if the wallet is short; 409 if you already have a book in progress |
 | `GET /api/books/{id}/events` | SSE: snapshot from the DB first, then live events (see below); ping every 15 s |
-| `GET /api/books` | array, newest first: `{book_id, story, title, hero_name, status, created_at, cover_thumb_url, pdf_url, est_cost_usd, tier}` |
-| `GET /api/wallet` | `{balance_cents, currency, book_price_cents (= Cost-Efficient price, kept for old clients), default_tier, tiers: [{id, label, price_cents, avg_cost_per_book_usd, books_costed}], presets_cents, custom_min_cents, custom_max_cents, avg_cost_per_book_usd, books_costed}` (averages over finished books) |
+| `GET /api/books` | array, newest first: `{book_id, story, title, hero_name, status, created_at, cover_thumb_url, pdf_url, est_cost_usd, tier, refund: {status: null\|pending\|refunded\|denied, amount_cents, eligible}}` |
+| `POST /api/wallet/book-refund-requests` | `{book_id}` -> 201 `{id, book_id, status: "pending", amount_cents}`. 400 not finished / free book / already refunded, 404 not your book, 409 a request for this book already exists (pending, approved or denied). An admin decides via `POST /api/admin/refund-requests/{id}/approve\|reject` (approve credits the wallet once, no Stripe) |
+| `GET /api/wallet/transactions` | your ledger, newest first: `{id, created_at (ISO-8601 UTC, show date + time), kind, cause, amount_cents, balance_after_cents, description, book_id, status}`; `cause` is Top-up / Book charge / Failed book re-credit / Top-up refund to card / Book refund |
+| `GET /api/wallet` | `{balance_cents, currency, book_price_cents (= Cost-Efficient price, kept for old clients), default_tier, tiers: [{id, label, price_cents, avg_cost_per_book_usd, books_costed}], presets_cents, custom_min_cents, custom_max_cents, avg_cost_per_book_usd, books_costed, shared_assets_cost_usd, shared_assets_calls}` (averages over finished books, counting each book's own API calls only; one-time shared character sheets (`cast_sheet`, `cast_sheet_check`), reused by later books, are reported separately in `shared_assets_*`). `GET /api/admin/costs` adds the same `shared_assets_*` fields |
 | `GET /api/books/{id}` | summary + `stage`, `stage_label`, `error`, `page_numbers`, `hero_url`, `hero_thumb_url`, `hero_attempts`, `hero_scores`, `events_url`, `pages[]` (page events + `status`) |
 | `GET /api/books/{id}/hero.png`, `/hero/thumb.jpg`, `/pages/{n}.png`, `/pages/{n}/thumb.jpg` | images (`Cache-Control: private`) |
 | `GET /api/books/{id}/JackAndTheBeanstalk.pdf` (or `LittleRedRidingHood.pdf`) | PDF attachment, once `status` is `done` |

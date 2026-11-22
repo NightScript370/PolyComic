@@ -131,6 +131,44 @@ def hair_phrase(traits: PhotoTraits) -> str:
 
 
 CHILD_AGE = "about 7 to 9 years old"
+# Entered ages (form field ``age``, 1-17) from this age up are drawn as a teenager; adults
+# (18+, from the photo) get the CHILD VERSION. Without an entered age the photo's detected
+# age group decides, and a detected teen is drawn at TEEN_DEFAULT_AGE.
+TEEN_MIN_AGE, TEEN_MAX_AGE, TEEN_DEFAULT_AGE = 13, 17, 15
+
+
+@dataclass(frozen=True)
+class HeroLook:
+    """How old the hero is DRAWN: a child (about 7 to 9) or a teenager about ``age``.
+
+    ``resolve_hero_look``: the age the user entered wins (13-17 = teen, below = child);
+    without one, a photo detected as a teen is drawn as a teenager and every other photo
+    (child, adult, elderly, unknown) as a child."""
+
+    teen: bool = False
+    age: int = TEEN_DEFAULT_AGE  # only meaningful for a teen
+
+    @property
+    def phrase(self) -> str:
+        """'a teenager about 15 years old' / 'a child about 7 to 9 years old'."""
+        return (f"a teenager about {self.age} years old" if self.teen
+                else f"a child {CHILD_AGE}")
+
+    @property
+    def short(self) -> str:
+        """'teenager about 15' / 'child'."""
+        return f"teenager about {self.age}" if self.teen else "child"
+
+
+def resolve_hero_look(traits: PhotoTraits | None, age: int | None = None) -> HeroLook:
+    if age is not None:
+        if TEEN_MIN_AGE <= age <= TEEN_MAX_AGE:
+            return HeroLook(True, age)
+        if age < TEEN_MIN_AGE:
+            return HeroLook()
+    if traits is not None and traits.age_group == "teen":
+        return HeroLook(True, TEEN_DEFAULT_AGE)
+    return HeroLook()
 # Never drawn on the child version, whatever the photo shows.
 DROPPED_FEATURES = ("a beard", "a moustache or stubble", "wrinkles or an aged face",
                     "the clothes from the photo (adult clothes such as a suit, jacket, tie "
@@ -158,8 +196,11 @@ def kept_items_phrase(traits: PhotoTraits | None) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def child_version_needed(traits: PhotoTraits | None) -> bool:
-    """True when the photo shows a teen, an adult or an elderly person."""
+def child_version_needed(traits: PhotoTraits | None, look: HeroLook | None = None) -> bool:
+    """True when the hero is not drawn as the photo's own child: the photo shows a teen,
+    an adult or an elderly person, or the hero is a teenager (entered age 13-17)."""
+    if look is not None and look.teen:
+        return True
     return traits is not None and not traits.is_child
 
 
@@ -167,12 +208,29 @@ def _hair_words(traits: PhotoTraits) -> str:
     hair = hair_phrase(traits)
     if not hair:
         return ""
+    style = (traits.hair_style or "").strip().rstrip(".")
     if traits.hair_colour == "grey":
-        return f"{hair} hair (grey stays grey, exactly as photographed)"
-    return f"{hair} hair"
+        out = f"{hair} hair (grey stays grey, exactly as photographed)"
+    else:
+        out = f"{hair} hair"
+    return f"{out}, {style}" if style else out
 
 
-def identity_line(traits: PhotoTraits | None) -> str:
+def hair_style_rule(traits: PhotoTraits | None) -> str:
+    """'Hair length and style exactly as photographed: short, tousled ...' ('' = unknown or
+    covered): the hero's hair length / cut / parting come from the photo, not from the
+    model's idea of a child's or teen's hair."""
+    if traits is None or traits.hair_covered:
+        return ""
+    style = (traits.hair_style or "").strip().rstrip(".")
+    if not style:
+        return ""
+    return (f"Hair length and style exactly as photographed: {style}. Never longer, shorter, "
+            "curlier, straighter or a different colour than the photo's hair - and the same "
+            "hair in every book.")
+
+
+def identity_line(traits: PhotoTraits | None, look: HeroLook | None = None) -> str:
     """'The child has light olive skin and curly black hair - keep exactly that. ...' for
     the hero prompt (every attempt, the first included); '' when nothing usable is known.
     Curly / coily hair gets an extra rule, because low-detail styles tend to flatten it
@@ -185,7 +243,8 @@ def identity_line(traits: PhotoTraits | None) -> str:
     bits = ([f"{skin} skin"] if skin else []) + ([hair] if hair else [])
     if not bits:
         return ""
-    line = ("The child has " + " and ".join(bits) + " - keep exactly that. Stylise the "
+    who = "The teenager" if look is not None and look.teen else "The child"
+    line = (who + " has " + " and ".join(bits) + " - keep exactly that. Stylise the "
             "shapes, never the skin tone, hair colour or hair type (straight, wavy, curly or "
             "coily).")
     if hair and hair_texture_phrase(traits) in ("curly", "coily"):
@@ -195,25 +254,36 @@ def identity_line(traits: PhotoTraits | None) -> str:
     return line
 
 
-def child_version_block(traits: PhotoTraits | None) -> str:
-    """The 'draw a child version' rule for a hero prompt when the photo shows a teen,
-    adult or elderly person ('' for a child photo or unknown traits)."""
-    if not child_version_needed(traits):
+def child_version_block(traits: PhotoTraits | None, look: HeroLook | None = None) -> str:
+    """The age rule for a hero prompt: a TEEN VERSION for a teenager (entered age 13-17, or
+    a photo detected as a teen), the CHILD VERSION when the photo shows an adult or an
+    elderly person; '' for a child photo or unknown traits."""
+    if not child_version_needed(traits, look):
         return ""
-    assert traits is not None
+    look = look or resolve_hero_look(traits)
     who = {"teen": "a teenager", "adult": "an adult",
-           "elderly": "an elderly person"}.get(traits.age_group, "an adult")
-    hair = "" if traits.hair_covered else _hair_words(traits)
+           "elderly": "an elderly person", "child": "a child"}.get(
+               traits.age_group if traits is not None else "teen", "an adult")
+    hair = "" if traits is None or traits.hair_covered else _hair_words(traits)
     same = ["face shape", "eye shape", "nose", "skin tone"]
-    if hair:
-        same.append(f"hair colour and hair texture ({hair_phrase(traits)}, as photographed)")
+    if traits is not None and hair:
+        same.append(f"hair colour, hair texture, hair length and hairstyle ({hair}, "
+                    "exactly as photographed)")
     else:
         same.append("hair colour and hair texture as far as they show")
-    glasses = traits.glasses.strip()
+    glasses = traits.glasses.strip() if traits is not None else ""
     if glasses:
         same.append(f"the same {glasses}" if not glasses.lower().startswith(("a ", "the "))
                     else f"the same {glasses.split(' ', 1)[1]}")
-    note = " Grey hair stays grey." if traits.hair_colour == "grey" and hair else ""
+    note = (" Grey hair stays grey."
+            if traits is not None and traits.hair_colour == "grey" and hair else "")
+    if look.teen:
+        return ("TEEN VERSION: the hero is " + look.phrase + ". Draw the hero as a TEENAGER "
+                f"about {look.age} who looks exactly like the person in the photo: the same "
+                + ", ".join(same) + f".{note} Teen proportions: a teenager's height, a "
+                "slim young face with smooth skin - clearly older than a child, clearly not a "
+                "grown-up. Leave out: " + ", ".join(DROPPED_FEATURES) + ". The hero is a "
+                "teenager on every picture, never a small child and never a grown-up.")
     return ("CHILD VERSION: the photo shows " + who + ". Draw the hero as a CHILD VERSION "
             f"of this person, {CHILD_AGE}, who clearly looks like them: the same "
             + ", ".join(same) + f".{note} Child proportions: a child's height and a big "
@@ -237,8 +307,10 @@ def kept_items_rule(traits: PhotoTraits | None) -> str:
     return rule
 
 
-def identity_block(traits: PhotoTraits | None) -> str:
-    """Everything the hero prompt needs from the photo traits: child version (if the
-    photo is not a child), identity line, kept personal items. '' when unknown."""
-    return "\n\n".join(b for b in (child_version_block(traits), identity_line(traits),
-                                    kept_items_rule(traits)) if b)
+def identity_block(traits: PhotoTraits | None, look: HeroLook | None = None) -> str:
+    """Everything the hero prompt needs from the photo traits: the age rule (teen version
+    or child version, if the hero is not a child photo), identity line, hair style rule,
+    kept personal items. '' when unknown."""
+    parts = (child_version_block(traits, look), identity_line(traits, look),
+             hair_style_rule(traits), kept_items_rule(traits))
+    return "\n\n".join(b for b in parts if b)

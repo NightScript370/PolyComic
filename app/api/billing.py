@@ -21,11 +21,15 @@ from app.billing.wallet import (
     refunded_cents,
 )
 from app.db import repo
-from app.db.models import R_PENDING, TOPUP, RefundRequest
+from app.db.models import CHARGE, R_PENDING, RK_TOPUP, TOPUP, RefundRequest
 from app.tiers import DEFAULT_TIER, TIERS, Tier, tier_config
 
 log = logging.getLogger("app.billing")
 router = APIRouter()
+
+# Plain-words cause of each ledger entry kind (the row's description names story and tier).
+CAUSES = {"topup": "Top-up", "charge": "Book charge", "recredit": "Failed book re-credit",
+          "refund": "Top-up refund to card", "book_refund": "Book refund"}
 
 
 async def json_body(request: Request) -> dict[str, Any]:
@@ -69,7 +73,8 @@ def tiers_json(rows: list[repo.BookCostRow]) -> list[dict]:
 
 
 def refund_json(r: RefundRequest) -> dict:
-    return {"id": r.id, "topup_id": r.topup_entry_id, "status": r.status,
+    return {"id": r.id, "kind": r.kind, "book_id": r.book_id,
+            "topup_id": r.topup_entry_id if r.kind == RK_TOPUP else None, "status": r.status,
             "amount_cents": r.amount_cents, "admin_note": r.admin_note,
             "created_at": repo.iso(r.created_at), "decided_at": repo.iso(r.decided_at)}
 
@@ -78,6 +83,7 @@ def refund_json(r: RefundRequest) -> dict:
 async def wallet(user: CurrentUser, session: DbSession) -> JSONResponse:
     rows = await repo.done_book_costs(session)
     avg, n = avg_cost(rows)
+    shared_calls, shared_usd = await repo.shared_asset_cost(session)
     return JSONResponse({
         "balance_cents": await get_balance_cents(session, user.id),
         "currency": "usd",
@@ -88,8 +94,12 @@ async def wallet(user: CurrentUser, session: DbSession) -> JSONResponse:
         "presets_cents": list(PRESETS_CENTS),
         "custom_min_cents": CUSTOM_MIN_CENTS,
         "custom_max_cents": CUSTOM_MAX_CENTS,
+        # The book's own calls only (hero, pages, checks, retries, portraits); the one-time
+        # shared assets (supporting-character sheets, reused by later books) are not in it.
         "avg_cost_per_book_usd": avg,
         "books_costed": n,
+        "shared_assets_cost_usd": round(shared_usd, 4),
+        "shared_assets_calls": shared_calls,
     }, headers={"Cache-Control": "private, no-store"})
 
 
@@ -182,10 +192,17 @@ async def stripe_webhook(request: Request, session: DbSession) -> JSONResponse:
 async def transactions(user: CurrentUser, session: DbSession) -> JSONResponse:
     entries = await repo.list_wallet_entries(session, user.id)
     requests = await repo.list_refund_requests(session, user_id=user.id)
-    pending = {r.topup_entry_id for r in requests if r.status == R_PENDING}
+    pending = {r.topup_entry_id for r in requests
+               if r.status == R_PENDING and r.kind == RK_TOPUP}
+    book_states = await refunds.book_refund_states(
+        session, user.id, [e.book_id for e in entries if e.kind == CHARGE and e.book_id])
     out = []
     for e in entries:
         status = None
+        if e.kind == CHARGE and e.book_id in book_states:
+            st = book_states[e.book_id]["status"]
+            status = {"pending": "refund pending", "refunded": "refunded",
+                      "denied": "refund denied"}.get(st)
         if e.kind == TOPUP:
             if e.id in pending:
                 status = "refund pending"
@@ -196,7 +213,7 @@ async def transactions(user: CurrentUser, session: DbSession) -> JSONResponse:
                 elif done > 0:
                     status = "partially refunded"
         out.append({"id": e.id, "created_at": repo.iso(e.created_at), "kind": e.kind,
-                    "amount_cents": e.amount_cents,
+                    "cause": CAUSES.get(e.kind, e.kind), "amount_cents": e.amount_cents,
                     "balance_after_cents": e.balance_after_cents,
                     "description": e.description, "book_id": e.book_id, "status": status})
     return JSONResponse(out, headers={"Cache-Control": "private, no-store"})
@@ -215,6 +232,22 @@ async def create_refund_request(request: Request, user: CurrentUser, session: Db
         return billing_error(exc)
     return JSONResponse({"id": req.id, "status": req.status, "amount_cents": req.amount_cents},
                         status_code=201)
+
+
+@router.post("/api/wallet/book-refund-requests", status_code=201)
+async def create_book_refund_request(request: Request, user: CurrentUser, session: DbSession
+                                     ) -> JSONResponse:
+    """The buyer asks for one book's price back in the wallet; an admin decides."""
+    body = await json_body(request)
+    book_id = body.get("book_id")
+    if not isinstance(book_id, str) or not book_id:
+        return error(400, "book_id is required.")
+    try:
+        req = await refunds.create_book_request(session, user, book_id)
+    except BillingError as exc:
+        return billing_error(exc)
+    return JSONResponse({"id": req.id, "book_id": book_id, "status": req.status,
+                         "amount_cents": req.amount_cents}, status_code=201)
 
 
 @router.get("/api/wallet/refund-requests")

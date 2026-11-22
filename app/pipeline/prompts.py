@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from app.pipeline.family import HeroLook
 from app.pipeline.placement import zone_where
 from app.stories.loader import Character, Costume, FamilyVariant, Page, Story, get_layout
 from app.styles.presets import CONSTRAINTS, outfit_note, style_reminder
@@ -20,7 +21,7 @@ DEFAULT_OUTFIT = (
 class RefSpec:
     """One reference image sent with a page call, in order (image 1, image 2, ...)."""
 
-    role: str  # hero | photo | plate | family_sheet | character | cast
+    role: str  # hero | photo | plate | family_sheet | character | cast | style
     name: str = ""  # character name ("character", "cast"), or who to copy ("family_sheet")
     character_id: str = ""
     costume: str = ""  # "cast" only: the costume shown on the sheet ("" = plain)
@@ -59,6 +60,20 @@ HERO_CHILD_RULE = (
     "the hero outfit: never adult clothes such as a suit, and never another character's "
     "clothes (no dress, blouse, apron, shawl or cloak belonging to someone else)."
 )
+# A teenage hero (entered age 13-17, or a photo detected as a teen) keeps the teen's own
+# face and hair on every page - no child version.
+def hero_age_rule(look: HeroLook | None = None) -> str:
+    """The per-page rule on the hero's age and clothes: the CHILD rule, or - for a teen
+    hero - 'teenager about N' wording."""
+    if look is None or not look.teen:
+        return HERO_CHILD_RULE
+    return (f"The hero is always the TEENAGER from the hero reference (about {look.age} "
+            "years old) - a teenager's face and body, never a small child, never a grown-up "
+            "or elderly face, never a beard, moustache or wrinkles - with the same face and "
+            "the same hair length, hairstyle and hair colour as the hero reference on every "
+            "page, and always wears the hero outfit: never adult clothes such as a suit, and "
+            "never another character's clothes (no dress, blouse, apron, shawl or cloak "
+            "belonging to someone else).")
 
 
 def hero_items_rule(items: str) -> str:
@@ -131,7 +146,17 @@ OTHER_EXPRESSION_RULE = (
 HERO_CAPTION = ("The hero child alone, full body from head to feet, front view, neutral "
                 "standing pose, on a plain light background, wearing the story outfit. The "
                 "hero must be a CHILD of about 7 to 9 years old who looks like the person in "
-                "the photo (a child version when the photo shows a teen or adult).")
+                "the photo (a child version when the photo shows an adult).")
+
+
+def hero_caption(look: HeroLook | None = None) -> str:
+    """The hero sheet's description for the grader."""
+    if look is None or not look.teen:
+        return HERO_CAPTION
+    return ("The hero teenager alone, full body from head to feet, front view, neutral "
+            "standing pose, on a plain light background, wearing the story outfit. The "
+            f"hero must be a teenager about {look.age} years old with the same face and "
+            "the same hair length, hairstyle and colour as the person in the photo.")
 
 
 PROPS_HEADING = "Props (draw exactly as described, same on every page):"
@@ -198,7 +223,8 @@ def corrections_block(corrections: Sequence[str]) -> str:
 
 
 def hero_prompt(style: str, hero_outfit: str | None = None,
-                corrections: Sequence[str] = (), identity: str = "") -> str:
+                corrections: Sequence[str] = (), identity: str = "",
+                look: HeroLook | None = None) -> str:
     """``identity`` is ``app.pipeline.family.identity_block(traits)`` (child version when
     the photo is not a child, the photo's measured skin tone and hair, the personal items
     kept on every page), or "" when not known yet. The outfit is always the story's hero
@@ -206,14 +232,20 @@ def hero_prompt(style: str, hero_outfit: str | None = None,
     outfit = hero_outfit.strip() if hero_outfit else DEFAULT_OUTFIT
     clothing = clothing_line(style)
     fix = corrections_block(corrections)
+    teen = look is not None and look.teen
+    task_age = (f"The hero is always a TEENAGER of about {look.age} years old who clearly "
+                "looks like the person in the photo (same face, same hair length, style "
+                "and colour)." if teen else
+                "The hero is always a CHILD of about 7 to 9 years old who clearly looks "
+                "like the person in the photo.")
     return "\n\n".join(
         [
             "Task: turn the person in the attached photo into a stylised hero character "
-            "reference image for a picture book. The hero is always a CHILD of about 7 to 9 "
-            "years old who clearly looks like the person in the photo.",
+            "reference image for a picture book. " + task_age,
             style,
-            "Composition: exactly one character - the child - shown full body from the top of "
-            "the head to the feet, standing in a relaxed neutral pose, front view facing the "
+            f"Composition: exactly one character - the {'teenager' if teen else 'child'} - "
+            "shown full body from the top of the head to the feet, standing in a relaxed neutral "
+            "pose, front view facing the "
             "viewer, arms slightly away from the body, a relaxed, neutral expression with "
             "the mouth closed (each story page sets its own expression), centred with a "
             "small margin around the figure, on a plain, light, evenly lit background with "
@@ -357,9 +389,9 @@ def page_characters(story: Story, page: Page) -> list[Character]:
 def _ref_line(i: int, r: RefSpec) -> str:
     if r.role == "hero":
         return (f"Image {i} is the stylised hero character reference - the ONLY source of "
-                "the hero's identity, a child - a reference image for the hero's look only, "
+                "the hero's identity and age - a reference image for the hero's look only, "
                 "not a cut-out to paste in: copy the hero's identity exactly from it - face "
-                "shape, age, hair, skin tone, glasses and headwear (if any), body "
+                "shape, age, hair length and style, skin tone, glasses and headwear (if any), body "
                 "proportions, outfit and rendering style - but not its expression, its pose "
                 "or its plain light background (never a plain light strip or border in the "
                 "scene).")
@@ -378,6 +410,11 @@ def _ref_line(i: int, r: RefSpec) -> str:
                 "the matching figure on it (face, hair, skin tone, body shape, clothes and "
                 "colours). It is a reference image for their look only, not a cut-out to "
                 "paste in: do not copy its plain background, poses or side-by-side layout.")
+    if r.role == "style":
+        return (f"Image {i} is a finished, approved page of this same book - the STYLE "
+                "ANCHOR. Copy only its rendering technique (the same 3D / pixel / painted "
+                "look, textures, shading and lighting, on every character, prop and the "
+                "background); never copy its scene, composition, poses or characters.")
     if r.role == "cast":
         outfit = f" ({r.costume})" if r.costume else ""
         return (f"Image {i} is the reference sheet for {r.name}{outfit} - draw {r.name} with "
@@ -389,14 +426,30 @@ def _ref_line(i: int, r: RefSpec) -> str:
             "this face, hair, skin tone, clothes and colours.")
 
 
+def fixed_zone_name(page: Page) -> str | None:
+    """Zone name ('top' | 'bottom' | 'middle') of the page's FIXED text zone - the layout's
+    first allowed zone, the same for every story - or None without a layout."""
+    layout = get_layout(page.layout)
+    if layout is None or not layout.allowed_text_zones:
+        return None
+    return str(layout.allowed_text_zones[0].get("zone") or "") or None
+
+
 def quiet_zone_rule(page: Page, zone: str | None = None, strong: bool = False,
-                    item: str | None = None) -> str:
+                    item: str | None = None, text_zone: str | None = None) -> str:
     """The layout's quiet-zone instruction; ``strong`` (after a placement failure) adds an
-    explicit rule for ``zone``, naming the blocking ``item`` ("the golden harp")."""
+    explicit rule for ``zone``, naming the blocking ``item`` ("the golden harp").
+    ``text_zone`` (the page's fixed text zone) is named in every prompt: the text is always
+    printed there, so that area must stay free of faces, characters and key objects."""
     layout = get_layout(page.layout)
     base = layout.quiet_zone_instruction if layout else ""
     if base:
         base = f"{base} {PAINT_EDGE_TO_EDGE}"
+    if text_zone and not strong:
+        where = zone_where(text_zone)
+        base = (f"The page text is always printed in the {where} of the picture: keep every "
+                f"face, every character and every important object out of the {where}, and "
+                f"paint the scene there normally. {base}").strip()
     if not strong:
         return base
     where = zone_where(zone)
@@ -420,8 +473,14 @@ def scene_prompt(
     quiet_item: str | None = None,
     hero_items: str = "",
     vertical_rescue: bool = False,
+    hero_look: HeroLook | None = None,
+    text_zone: str | None = None,
 ) -> str:
     """Compose a story-page prompt.
+
+    ``hero_look`` (``app.pipeline.family.resolve_hero_look``) makes the age rule say
+    'teenager about N' for a teen hero; ``text_zone`` names the page's fixed text zone in
+    the quiet-zone instruction.
 
     ``hero_items`` names the personal items kept from the photo ("round glasses and a dark
     skullcap", ``app.pipeline.family.kept_items_phrase``); ``vertical_rescue`` (after
@@ -449,8 +508,9 @@ def scene_prompt(
         "frame from the top edge to the bottom edge.",
         "Reference images: " + " ".join(_ref_line(i, r) for i, r in enumerate(refs, 1)),
         INTEGRATION_RULE,
+        *([style_reminder(style)] if style_reminder(style) else []),
         HERO_LOOK_RULE,
-        HERO_CHILD_RULE,
+        hero_age_rule(hero_look),
         *([hero_items_rule(hero_items)] if hero_items_rule(hero_items) else []),
         HERO_EXPRESSION_RULE,
         ONE_EACH_RULE,
@@ -500,7 +560,8 @@ def scene_prompt(
         parts.append("Clearly visible in the picture: " + "; ".join(page.must_be_visible) + ".")
     if page.palette_note:
         parts.append(f"Lighting and palette: {page.palette_note}")
-    rule = quiet_zone_rule(page, quiet_zone, strong=quiet_zone is not None, item=quiet_item)
+    rule = quiet_zone_rule(page, quiet_zone, strong=quiet_zone is not None, item=quiet_item,
+                           text_zone=text_zone)
     if rule:
         parts.append(f"Composition: {rule}")
     parts.append(FULL_FRAME_RULE)

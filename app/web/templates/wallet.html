@@ -38,13 +38,13 @@
 <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
   <p class="empty" id="tx-empty" hidden>No activity yet.</p>
   <table class="tbl cards" id="tx-table" hidden>
-    <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Amount</th><th scope="col">Balance</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <thead><tr><th scope="col">When</th><th scope="col">Cause</th><th scope="col">What</th><th scope="col">Amount</th><th scope="col">Balance</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
     <tbody id="tx-body"></tbody>
   </table>
 </section>
 
 <section id="panel-refunds" role="tabpanel" aria-labelledby="tab-refunds" hidden>
-  <p class="empty" id="rf-empty" hidden>No refund requests. Use REQUEST REFUND next to a top-up in HISTORY.</p>
+  <p class="empty" id="rf-empty" hidden>No refund requests. Use REQUEST REFUND next to a top-up in HISTORY, or on a finished book in MY BOOKS.</p>
   <ul class="rf-list" id="rf-list"></ul>
 </section>
 {% endblock %}

@@ -283,6 +283,7 @@ async def test_early_band_retry_starts_during_the_first_pass(monkeypatch):
 
     async def run(early: bool):
         monkeypatch.setenv("QUALITY_EARLY_BAND_RETRY", "true" if early else "false")
+        monkeypatch.setenv("QUALITY_EARLY_RETRY", "false")  # only the band rule is tested
         get_settings.cache_clear()
         events: list = []
         provider = Slow2Band1(log=events)

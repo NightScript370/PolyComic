@@ -98,7 +98,8 @@ async def test_wallet_requires_login_and_reports(stripe_env):
                              "books_costed": 0}],
                         "presets_cents": [500, 1000, 2000], "custom_min_cents": 100,
                         "custom_max_cents": 10000, "avg_cost_per_book_usd": None,
-                        "books_costed": 0}
+                        "books_costed": 0, "shared_assets_cost_usd": 0.0,
+                        "shared_assets_calls": 0}
 
 
 @pytest.mark.parametrize("amount", [99, 10001, 0, -5, "500", 5.5, None, True])
@@ -353,3 +354,145 @@ async def test_approve_invalid_request_marks_failed(stripe_env, monkeypatch):
         assert r.status_code == 502
         reqs = (await admin_c.get("/api/admin/refund-requests?status=all")).json()
         assert reqs[0]["status"] == "failed" and "rejected" in reqs[0]["admin_note"]
+
+
+# --- per-book refunds (buyer requests, admin approves, wallet credit) ------------------------
+
+
+async def _paid_book(user_id, book_id="bk1", status="done", price=99, fund_cents=500):
+    """Fund the user and charge one book; returns the charge entry."""
+    await fund(user_id, fund_cents, "cs_" + book_id)
+    async with get_sessionmaker()() as s:
+        charge = await wallet.charge_document(s, user_id, book_id=book_id, price_cents=price,
+                                              description="Book: Jack (Max, Cost-Efficient)")
+        s.add(Book(id=book_id, user_id=user_id, story="jack", title="Jack", preset="p",
+                   detail=1, hero_name="Max", pronouns="he", status=status))
+        await s.commit()
+    return charge
+
+
+async def test_book_refund_request_and_admin_approve_credits_once(stripe_env):
+    async with client() as c, client() as admin_c:
+        u = await login(c)
+        await login(admin_c, email="boss@example.test")
+        await _paid_book(u["id"])
+        books = (await c.get("/api/books")).json()
+        assert books[0]["refund"] == {"status": None, "amount_cents": 99, "eligible": True}
+        r = await c.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+        assert r.status_code == 201
+        assert r.json()["status"] == "pending" and r.json()["amount_cents"] == 99
+        rid = r.json()["id"]
+        # double request refused; the book shows as pending, no longer eligible
+        assert (await c.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+                ).status_code == 409
+        refund = (await c.get("/api/books")).json()[0]["refund"]
+        assert refund["status"] == "pending" and refund["eligible"] is False
+        assert (await c.get("/api/wallet")).json()["balance_cents"] == 401  # unchanged
+        # a plain user cannot decide
+        assert (await c.post(f"/api/admin/refund-requests/{rid}/approve")).status_code == 404
+        listed = (await admin_c.get("/api/admin/refund-requests")).json()
+        assert listed[0]["kind"] == "book" and listed[0]["book_id"] == "bk1"
+        assert listed[0]["book_title"] == "Jack" and listed[0]["topup_amount_cents"] is None
+        r = await admin_c.post(f"/api/admin/refund-requests/{rid}/approve")
+        assert r.status_code == 200 and r.json()["status"] == "approved"
+        # wallet credited once, no Stripe involved (the key is a dummy: a call would fail)
+        assert (await c.get("/api/wallet")).json()["balance_cents"] == 500
+        assert (await admin_c.post(f"/api/admin/refund-requests/{rid}/approve")
+                ).status_code == 409
+        assert (await c.get("/api/wallet")).json()["balance_cents"] == 500
+        tx = (await c.get("/api/wallet/transactions")).json()
+        assert [t["kind"] for t in tx].count("book_refund") == 1
+        refund_row = next(t for t in tx if t["kind"] == "book_refund")
+        assert refund_row["amount_cents"] == 99 and refund_row["cause"] == "Book refund"
+        assert next(t for t in tx if t["kind"] == "charge")["status"] == "refunded"
+        book = (await c.get("/api/books")).json()[0]
+        assert book["status"] == "done" and book["refund"]["status"] == "refunded"
+        assert book["refund"]["eligible"] is False
+        # one refund per book max, even asked again
+        again = await c.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+        assert again.status_code == 400 and "already refunded" in again.json()["error"]
+
+
+async def test_book_refund_request_denied(stripe_env):
+    async with client() as c, client() as admin_c:
+        u = await login(c)
+        await login(admin_c, email="boss@example.test")
+        await _paid_book(u["id"])
+        rid = (await c.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+               ).json()["id"]
+        r = await admin_c.post(f"/api/admin/refund-requests/{rid}/reject",
+                               json={"note": "Looks fine."})
+        assert r.status_code == 200 and r.json()["status"] == "rejected"
+        assert (await c.get("/api/wallet")).json()["balance_cents"] == 401
+        book = (await c.get("/api/books")).json()[0]
+        assert book["refund"]["status"] == "denied" and book["refund"]["eligible"] is False
+        assert (await c.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+                ).status_code == 409
+        mine = (await c.get("/api/wallet/refund-requests")).json()
+        assert mine[0]["kind"] == "book" and mine[0]["admin_note"] == "Looks fine."
+
+
+async def test_free_and_unfinished_and_recredited_books_not_refundable(stripe_env):
+    async with client() as c:
+        u = await login(c)
+        assert (await c.post("/api/wallet/book-refund-requests", json={})).status_code == 400
+        assert (await c.post("/api/wallet/book-refund-requests", json={"book_id": "nope"})
+                ).status_code == 404
+        # free book (price 0): nothing to refund
+        await _paid_book(u["id"], book_id="free1", price=0)
+        r = await c.post("/api/wallet/book-refund-requests", json={"book_id": "free1"})
+        assert r.status_code == 400 and "free" in r.json()["error"]
+        assert (await c.get("/api/books")).json()[0]["refund"]["eligible"] is False
+        # a book still being made is not refundable yet
+        await _paid_book(u["id"], book_id="run1", status="running")
+        assert (await c.post("/api/wallet/book-refund-requests", json={"book_id": "run1"})
+                ).status_code == 400
+        # a failed book already re-credited automatically is not refundable again
+        ch = await _paid_book(u["id"], book_id="fail1", status="failed")
+        async with get_sessionmaker()() as s:
+            await wallet.recredit_document(s, u["id"], book_id="fail1", charge_entry_id=ch.id,
+                                           reason="failed")
+        r = await c.post("/api/wallet/book-refund-requests", json={"book_id": "fail1"})
+        assert r.status_code == 400 and "already" in r.json()["error"]
+
+
+async def test_other_users_book_not_refundable(stripe_env):
+    async with client() as c, client() as c2:
+        u = await login(c)
+        await login(c2, email="intruder@example.test")
+        await _paid_book(u["id"])
+        assert (await c2.post("/api/wallet/book-refund-requests", json={"book_id": "bk1"})
+                ).status_code == 404
+
+
+async def test_history_rows_have_time_and_cause(stripe_env):
+    from datetime import datetime
+    async with client() as c:
+        u = await login(c)
+        await _paid_book(u["id"])
+        tx = (await c.get("/api/wallet/transactions")).json()
+        assert {t["kind"] for t in tx} == {"topup", "charge"}
+        for t in tx:
+            stamp = datetime.fromisoformat(t["created_at"])
+            assert stamp.tzinfo is not None and "T" in t["created_at"]  # date AND time
+            assert t["cause"] and isinstance(t["amount_cents"], int)
+        assert {t["kind"]: t["cause"] for t in tx} == {"topup": "Top-up",
+                                                       "charge": "Book charge"}
+        assert "Jack" in next(t for t in tx if t["kind"] == "charge")["description"]
+
+
+async def test_avg_cost_excludes_shared_assets(stripe_env):
+    async with client() as c:
+        u = await login(c)
+        async with get_sessionmaker()() as s:
+            s.add(Book(id="b0", user_id=u["id"], story="jack", title="t", preset="p",
+                       detail=1, hero_name="h", pronouns="she", status="done"))
+            await s.flush()
+            for kind, cost in (("page", 0.20), ("grade", 0.05), ("cast_sheet", 0.50),
+                               ("cast_sheet_check", 0.10)):
+                s.add(ApiCall(book_id="b0", user_id=u["id"], provider="fake", model="m",
+                              kind=kind, page=1, est_cost_usd=cost))
+            await s.commit()
+        body = (await c.get("/api/wallet")).json()
+        assert body["avg_cost_per_book_usd"] == 0.25 and body["books_costed"] == 1
+        assert body["shared_assets_cost_usd"] == 0.6 and body["shared_assets_calls"] == 2

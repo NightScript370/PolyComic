@@ -31,7 +31,13 @@ import time
 from collections.abc import Awaitable, Callable, Sequence
 
 from app.pipeline.calls import CallCost, Record, short_error
-from app.pipeline.family import choose_family_variant, default_family_variant, identity_block
+from app.pipeline.family import (
+    HeroLook,
+    choose_family_variant,
+    default_family_variant,
+    identity_block,
+    resolve_hero_look,
+)
 from app.pipeline.prompts import family_expectations, family_sheet_prompt, hero_prompt
 from app.providers.base import ImageResult, PhotoTraits, SheetCheck, VisionGrader
 from app.stories.loader import Character, Page, Story
@@ -61,13 +67,16 @@ def sheet_names(chars: list[Character]) -> str:
 
 
 def hero_identity_prompt(style: str, story: Story, traits: PhotoTraits | None,
-                         corrections: Sequence[str] = ()) -> str:
+                         corrections: Sequence[str] = (),
+                         look: HeroLook | None = None) -> str:
     """Hero prompt for ``story`` with the photo's identity block: a CHILD VERSION rule
-    when the photo shows a teen or adult, the identity line ("The child has brown skin and
-    curly black hair - keep exactly that.") and the personal items kept on every page
-    (glasses, headwear) - or without it when the traits are unknown (no grader, or the
-    traits call failed). The outfit is always the story's hero outfit."""
-    return hero_prompt(style, story.hero_outfit, corrections, identity=identity_block(traits))
+    when the photo shows an adult (a TEEN VERSION for a teenager), the identity line ("The
+    child has brown skin and curly black hair - keep exactly that.") and the personal
+    items kept on every page (glasses, headwear) - or without it when the traits are
+    unknown (no grader, or the traits call failed). The outfit is always the story's hero outfit."""
+    look = look or resolve_hero_look(traits)
+    return hero_prompt(style, story.hero_outfit, corrections,
+                       identity=identity_block(traits, look), look=look)
 
 
 async def match_family(grader: VisionGrader | None, photo: bytes, story: Story, record: Record,

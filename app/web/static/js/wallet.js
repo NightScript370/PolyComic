@@ -30,7 +30,8 @@
       : [{ label: 'Book', price_cents: typeof wallet.book_price_cents === 'number' ? wallet.book_price_cents : 99, avg_cost_per_book_usd: wallet.avg_cost_per_book_usd }];
     const free = tiers.every((t) => t.price_cents === 0);
     $('price-line').firstChild.nodeValue = (free ? 'Books are free right now' : 'Books: ' + tiers.map((t) => t.label + ' ' + PC.money(t.price_cents)).join(' · ')) + ' ';
-    $('avg-line').textContent = '· Avg. cost to make one: ' + tiers.map((t) => (tiers.length > 1 ? t.label + ' ' : '') + PC.usd(t.avg_cost_per_book_usd)).join(', ');
+    $('avg-line').textContent = '· Avg. cost to make one (the book’s own calls): ' + tiers.map((t) => (tiers.length > 1 ? t.label + ' ' : '') + PC.usd(t.avg_cost_per_book_usd)).join(', ') +
+      (typeof wallet.shared_assets_cost_usd === 'number' ? ' · plus ' + PC.usd(wallet.shared_assets_cost_usd) + ' one-time shared character sheets, spread over all books' : '');
   }
 
   /* ---------- top-up ---------- */
@@ -95,7 +96,12 @@
     $('tx-table').hidden = txs.length === 0;
     txs.forEach((t) => {
       const tr = document.createElement('tr');
-      tr.appendChild(td('Date')).textContent = PC.fmtDate(t.created_at);
+      const when = td('When');
+      const tm = el('time', null, PC.fmtStamp(t.created_at));
+      tm.setAttribute('datetime', t.created_at || '');
+      when.appendChild(tm);
+      tr.appendChild(when);
+      tr.appendChild(td('Cause')).textContent = t.cause || t.kind;
       const what = td('What', 'what');
       if (t.book_id) {
         const a = el('a', null, t.description || 'Book');
@@ -149,9 +155,10 @@
       const li = el('li', 'rf');
       const head = el('div', 'rf-head');
       head.appendChild(el('strong', null, PC.money(r.amount_cents)));
-      head.appendChild(el('span', 'chip ' + chipClass(r.status === 'approved' ? 'done' : r.status), chipText(r.status)));
+      head.appendChild(el('span', 'chip ' + chipClass(r.status === 'approved' ? 'done' : r.status), chipText(r.status === 'rejected' ? 'denied' : r.status)));
       li.appendChild(head);
-      li.appendChild(el('p', 'rf-meta', 'Requested ' + PC.fmtDate(r.created_at)));
+      const what = r.kind === 'book' ? 'Book refund to wallet' : 'Top-up refund to card';
+      li.appendChild(el('p', 'rf-meta', what + ' · requested ' + PC.fmtStamp(r.created_at) + (r.decided_at ? ' · decided ' + PC.fmtStamp(r.decided_at) : '')));
       if (r.admin_note) li.appendChild(el('p', 'rf-note', r.admin_note));
       ul.appendChild(li);
     });
@@ -191,6 +198,9 @@
     }
     return Promise.resolve();
   }
+
+  /* The shared balance poll (focus / every minute) also refreshes the history, so an approved refund shows up. */
+  PC.onWalletRefreshed = () => { if (wallet) loadAll(); };
 
   PC.onMe((me) => {
     if (!me) {

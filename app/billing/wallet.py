@@ -21,6 +21,7 @@ from app.db.models import (
     R_PENDING,
     RECREDIT,
     REFUND,
+    RK_TOPUP,
     TOPUP,
     RefundRequest,
     User,
@@ -166,7 +167,8 @@ async def refunded_cents(session: AsyncSession, topup_id: int) -> int:
 async def pending_refund_cents(session: AsyncSession, user_id: int,
                                exclude_request_id: int | None = None) -> int:
     q = select(func.coalesce(func.sum(RefundRequest.amount_cents), 0)).where(
-        RefundRequest.user_id == user_id, RefundRequest.status == R_PENDING)
+        RefundRequest.user_id == user_id, RefundRequest.status == R_PENDING,
+        RefundRequest.kind == RK_TOPUP)  # book refunds credit the wallet, never lower it
     if exclude_request_id is not None:
         q = q.where(RefundRequest.id != exclude_request_id)
     return int((await session.execute(q)).scalar_one())

@@ -22,6 +22,12 @@
     const d = new Date(s);
     return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   };
+  /* Full local timestamp (date + HH:MM in the viewer's time zone) from an ISO string. */
+  PC.fmtStamp = (s) => {
+    const d = new Date(s);
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' +
+      d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
   PC.fmtDateTime = (s) => {
     const d = new Date(s);
     return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
@@ -288,6 +294,14 @@
     }
     return walletP;
   };
+  /* Keep the header balance current without a reload: an admin may approve a refund while
+     this tab is open, so re-read it when the tab regains focus and every minute while visible. */
+  function refreshBalanceIfVisible() {
+    if (PC.me && !document.hidden) PC.loadWallet(true).then((w) => { if (w && PC.onWalletRefreshed) PC.onWalletRefreshed(w); });
+  }
+  document.addEventListener('visibilitychange', refreshBalanceIfVisible);
+  window.addEventListener('focus', refreshBalanceIfVisible);
+  setInterval(refreshBalanceIfVisible, 60000);
   PC.loadMe = () => PC.api('GET', '/api/me').then((r) => {
     PC.me = r.ok && r.data && r.data.user ? r.data.user : null;
   }).catch(() => { PC.me = undefined; }).then(() => {

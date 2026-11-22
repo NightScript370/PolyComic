@@ -346,6 +346,7 @@ class PhotoTraits:
     headwear: str = ""  # e.g. "a dark navy skullcap (kippah)"; "" = none
     facial_hair: bool = False  # beard / moustache in the photo (never drawn on the child)
     hair_covered: bool = False  # headwear hides most or all of the hair in the photo
+    hair_style: str = ""  # length + cut as photographed, e.g. "short, tousled, side parting"
 
     @property
     def is_child(self) -> bool:
@@ -441,6 +442,7 @@ class VisionGrader(Protocol):
         presence: Sequence[str] = (),
         style: str = "",
         cast_expressions: Sequence[str] = (),
+        hero_age: str = "",
     ) -> GradeResult:
         """One call. ``subject`` is ``hero`` (character reference sheet) or ``page``.
         ``traits`` (the photo's measured skin tone / hair, if known) make the identity
@@ -458,7 +460,9 @@ class VisionGrader(Protocol):
         with a possible speaker portrait only) fills ``visible_characters``. ``style`` (the
         key technique words of the book's style) drives ``style_match``;
         ``cast_expressions`` ('the wolf: dazed ...', one per character the page gives a face)
-        drives ``cast_expression_match``."""
+        drives ``cast_expression_match``. ``hero_age`` ("a teenager about 15 years old", only
+        passed for a teen hero) replaces the child-age expectation of ``hero_child_match``
+        and the likeness note."""
         ...
 
     async def check_family_sheet(self, image: bytes, *,

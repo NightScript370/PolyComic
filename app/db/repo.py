@@ -254,29 +254,50 @@ class BookCostRow:
     calls: int
     retries: int
     tier: str = "professional"
+    # One-time shared assets this book happened to pay for (first-time supporting-character
+    # sheets and their checks): reused by every later book of the story + style, so they
+    # are NOT in ``cost_usd`` / ``calls``.
+    shared_cost_usd: float = 0.0
+
+
+# Call kinds of assets generated once per story x style and reused by later books (see
+# app.pipeline.book.SHARED_KINDS). Excluded from a book's own cost, reported separately.
+SHARED_ASSET_KINDS = ("cast_sheet", "cast_sheet_check")
 
 
 async def done_book_costs(s: AsyncSession) -> list[BookCostRow]:
     """Per-book API spend and tier for completed books (every call tagged with the book:
     hero, page, grade and retries; plate/bible pregeneration and HW1 calls carry no book
-    id).
-    ``retries`` = page calls beyond one per page. Newest book first."""
+    id). The book's own spend leaves out the shared one-time assets (``SHARED_ASSET_KINDS``),
+    which are in ``shared_cost_usd``. ``retries`` = page calls beyond one per page. Newest
+    book first."""
     from sqlalchemy import case
 
     page_calls = func.sum(case((ApiCall.kind == "page", 1), else_=0))
     distinct_pages = func.count(func.distinct(case((ApiCall.kind == "page", ApiCall.page))))
+    shared = ApiCall.kind.in_(SHARED_ASSET_KINDS)
     q = (
         select(Book.id, Book.story, Book.created_at,
-               func.coalesce(func.sum(ApiCall.est_cost_usd), 0.0),
-               func.count(ApiCall.id), page_calls, distinct_pages, Book.tier)
+               func.coalesce(func.sum(case((shared, 0.0), else_=ApiCall.est_cost_usd)), 0.0),
+               func.sum(case((shared, 0), else_=1)), page_calls, distinct_pages, Book.tier,
+               func.coalesce(func.sum(case((shared, ApiCall.est_cost_usd), else_=0.0)), 0.0))
         .join(ApiCall, ApiCall.book_id == Book.id)
         .where(Book.status == "done")
         .group_by(Book.id, Book.story, Book.created_at, Book.tier)
         .order_by(Book.created_at.desc())
     )
     rows = (await s.execute(q)).all()
-    return [BookCostRow(r[0], r[1], r[2], float(r[3]), int(r[4]),
-                        max(0, int(r[5] or 0) - int(r[6] or 0)), r[7]) for r in rows]
+    return [BookCostRow(r[0], r[1], r[2], float(r[3]), int(r[4] or 0),
+                        max(0, int(r[5] or 0) - int(r[6] or 0)), r[7], float(r[8] or 0.0))
+            for r in rows]
+
+
+async def shared_asset_cost(s: AsyncSession) -> tuple[int, float]:
+    """(calls, cost_usd) of every recorded shared one-time asset call, all books."""
+    q = select(func.count(ApiCall.id), func.coalesce(func.sum(ApiCall.est_cost_usd), 0.0)
+               ).where(ApiCall.kind.in_(SHARED_ASSET_KINDS))
+    n, c = (await s.execute(q)).one()
+    return int(n), float(c)
 
 
 async def cost_by_kind(s: AsyncSession) -> tuple[dict[str, tuple[int, float]], int]:

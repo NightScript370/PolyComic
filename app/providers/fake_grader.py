@@ -52,6 +52,7 @@ class GradeCall:
     presence: list[str] = field(default_factory=list)
     style: str = ""
     cast_expressions: list[str] = field(default_factory=list)
+    hero_age: str = ""
 
 
 @dataclass
@@ -110,11 +111,11 @@ class FakeGrader:
     async def grade(self, image, *, hero, photo, caption, must_be_visible, subject="page",
                     traits=None, props=(), family_ref=None, family=(), cast_refs=(), cast=(),
                     expression="", hero_items=(), hero_outfit="", presence=(), style="",
-                    cast_expressions=()):
+                    cast_expressions=(), hero_age=""):
         call = GradeCall(subject, caption, list(must_be_visible), image, hero is not None,
                          traits, list(props), family_ref, list(family), list(cast_refs),
                          list(cast), expression, list(hero_items), hero_outfit,
-                         list(presence), style, list(cast_expressions))
+                         list(presence), style, list(cast_expressions), hero_age)
         n = len(self.calls)
         self.calls.append(call)
         if self.fn is not None:

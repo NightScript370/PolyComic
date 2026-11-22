@@ -6,10 +6,21 @@ kind ``figure`` - normalised to the picture). The picture is 3:4 and the trim ar
 page-zone coordinates are treated as the same space (the 3 mm bleed crop shifts them by
 about 1%, covered by the padding).
 
-Candidates: the layout's ``allowed_text_zones`` in preference order, then a centred
-``middle`` band as a last resort on every page (unless the layout already lists one).
+FIXED ZONE (the book pipeline, ``TEXT_ZONE_FIXED``, default on): the text of page N is
+ALWAYS printed in the layout's FIRST allowed zone (``fixed_zone``). Both stories share the
+same 20 layouts by slot, so Jack page N and Red page N print their text in the same place and
+the text never moves with the picture. The picture is made to fit instead: a picture that
+puts a face, a key object or - for a middle zone - a character's body into that zone is a
+``blocked`` placement; the quality loop counts it as a failed check and regenerates with a
+quiet-zone rule naming the blocker. A picture that is still blocked after the retries
+keeps the fixed zone anyway (the caller logs it). With ``fixed=True`` ``place_text`` has ONE
+candidate, the first zone; the ranking rules below then only decide ``blocked``.
 
-Rules:
+Candidates (``fixed=False``, the old behaviour): the layout's ``allowed_text_zones`` in
+preference order, then a centred ``middle`` band as a last resort on every page (unless the
+layout already lists one).
+
+Rules (face-first ranking, used when there are several candidates):
 1. The first candidate that is completely clear (no face or key-object box touches it,
    boxes grown by ``PAD``) wins - layout zones first, middle last.
 2. Otherwise the least-covering acceptable zone (not ``blocked``), weighted overlap with
@@ -143,7 +154,17 @@ def _intersection(z: TextZone, b: Box, pad: float) -> float:
     return max(0.0, x1 - x0) * max(0.0, y1 - y0)
 
 
-def candidates(layout: Layout | None) -> list[TextZone]:
+def fixed_zone(layout: Layout | None) -> TextZone:
+    """The page number's one text zone: the layout's first allowed zone."""
+    entries = layout.allowed_text_zones if layout and layout.allowed_text_zones else []
+    return zone_from_yaml(entries[0] if entries else FALLBACK_ZONE)
+
+
+def candidates(layout: Layout | None, fixed: bool = False) -> list[TextZone]:
+    """The zones to rank: all allowed zones + a middle fallback, or - ``fixed`` - only the
+    first allowed zone."""
+    if fixed:
+        return [fixed_zone(layout)]
     entries = layout.allowed_text_zones if layout and layout.allowed_text_zones else []
     zones = [zone_from_yaml(e) for e in entries] or [zone_from_yaml(FALLBACK_ZONE)]
     if not any(z.zone == "middle" for z in zones):
@@ -219,9 +240,12 @@ def relevant_boxes(boxes: Iterable[Box], max_area: float | None = None) -> list[
 
 
 def place_text(layout: Layout | None, boxes: Iterable[Box] = (), pad: float = PAD,
-               max_object_area: float | None = None) -> Placement:
-    """Choose a zone given the detected boxes (see module docstring)."""
-    zones = candidates(layout)
+               max_object_area: float | None = None, fixed: bool = False) -> Placement:
+    """Choose a zone given the detected boxes (see module docstring). ``fixed``: only the
+    layout's first zone is a candidate - it is returned whatever the boxes say, flagged
+    ``blocked`` (with the blocker) when it would cover a face / key object (/ a figure, for
+    a middle zone)."""
+    zones = candidates(layout, fixed)
     boxes = relevant_boxes(boxes, max_object_area)
     if not boxes:
         return Placement(zones[0], 0.0, False)
@@ -246,9 +270,10 @@ def place_text(layout: Layout | None, boxes: Iterable[Box] = (), pad: float = PA
 
 
 def choose_zone(
-    page: Page | None, layout: Layout | None, image: bytes | None, analysis=None
+    page: Page | None, layout: Layout | None, image: bytes | None, analysis=None,
+    fixed: bool = False,
 ) -> TextZone:
     """Pick the text zone for one page. ``analysis`` is a ``GradeResult`` (or anything with
-    ``.boxes``); without it the layout's first preference is used."""
+    ``.boxes``); without it the layout's first preference is used (always, when ``fixed``)."""
     boxes = getattr(analysis, "boxes", None) or []
-    return place_text(layout, boxes).zone
+    return place_text(layout, boxes, fixed=fixed).zone

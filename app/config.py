@@ -127,7 +127,7 @@ class Settings(BaseSettings):
     # passed, a picture that fails its check starts no further generation (the best
     # attempt so far is kept; a generation already running finishes). The hero always
     # gets at least 2 generations. 0 = no budget (always up to QUALITY_MAX_ATTEMPTS).
-    quality_time_budget_s: float = 45.0
+    quality_time_budget_s: float = 36.0
     # Hard cap on the book's generation time (seconds from the job start). No retry
     # generation (2nd/3rd attempt, the definite-error extra after the budget, a family /
     # cast sheet regeneration) and no rate-limit wait starts unless it is expected to END
@@ -136,9 +136,12 @@ class Settings(BaseSettings):
     # needs one). A picture whose best attempt has a DEFINITE error (contradiction /
     # duplicate, blank or blurred band, identity mismatch) may make ONE more generation
     # after the budget under the same rule. 0 = no cap (and no such exception).
-    quality_hard_cap_s: float = 70.0
-    # Whole-book target: a book job that takes longer logs a warning.
-    book_time_target_s: float = 60.0
+    # END-TO-END: seconds from the POST /api/books request, so it also covers the upload
+    # and the PDF. 46 = the 55 s target minus ~9 s for PDF render + persist + the 'done'
+    # event (about 4 s measured in tests, plus margin).
+    quality_hard_cap_s: float = 46.0
+    # Whole-book target (request arrival -> PDF ready): a longer job logs a warning.
+    book_time_target_s: float = 55.0
     # Vision grader: thinking level (minimal | low | medium | high; google-genai 3.0
     # ThinkingLevel). A model that rejects "minimal" falls back to "low" once per process.
     grader_thinking_level: str = "low"
@@ -171,6 +174,15 @@ class Settings(BaseSettings):
     # but only when the cost projection with this book's actual call costs stays under
     # the cap and the token limiter has no queue.
     quality_early_band_retry: bool = True
+    # Same for ANY definite error (identity, contradiction, style, cast ...): the retry
+    # starts as soon as the page's check fails instead of waiting for the slowest first
+    # picture - under the same cost-projection / free-token conditions. The retry phase
+    # otherwise held every failed picture until the last first picture was graded.
+    quality_early_retry: bool = True
+    # The text of page N is always printed in its layout's FIRST allowed zone (the same
+    # for every story). A picture that puts a face / key object there fails its check and
+    # is regenerated; if it is still blocked after the retries the zone is kept anyway.
+    text_zone_fixed: bool = True
     # Free strip rescue: a padded strip (blank / blurred / seam) along an edge is cropped
     # away, the picture re-cropped to 3:4 and upscaled, re-checked and graded (one grade
     # call, no image call). Only when the strip is at most STRIP_RESCUE_MAX_DEPTH of the

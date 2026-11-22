@@ -38,7 +38,9 @@
       head.appendChild(el('span', 'rf-meta', PC.fmtDateTime(r.created_at)));
       li.appendChild(head);
       li.appendChild(el('p', 'rf-user', (r.user_name ? r.user_name + ' · ' : '') + r.user_email));
-      li.appendChild(el('p', 'rf-meta', 'Top-up ' + PC.money(r.topup_amount_cents) + ' · current balance ' + PC.money(r.balance_cents)));
+      li.appendChild(el('p', 'rf-meta', r.kind === 'book'
+        ? 'Book refund to wallet: ' + (r.book_title || 'book') + (r.book_tier ? ' (' + r.book_tier.replace('_', '-') + ')' : '') + ' · current balance ' + PC.money(r.balance_cents)
+        : 'Top-up ' + PC.money(r.topup_amount_cents) + ' to card · current balance ' + PC.money(r.balance_cents)));
       const act = el('div', 'rpg-actions');
       const ok = el('button', 'pill small', 'APPROVE');
       ok.type = 'button';
@@ -62,7 +64,7 @@
     body.innerHTML = '';
     rows.forEach((r) => {
       const tr = document.createElement('tr');
-      tr.appendChild(td('Date')).textContent = PC.fmtDate(r.created_at);
+      tr.appendChild(td('Date')).textContent = PC.fmtStamp(r.created_at) + (r.kind === 'book' ? ' · book' : ' · top-up');
       tr.appendChild(userCell(r));
       tr.appendChild(td('Amount', 'amt')).textContent = PC.money(r.amount_cents);
       const st = td('Status');
@@ -85,7 +87,7 @@
     const approve = action === 'approve';
     PC.dialog({
       title: approve ? 'APPROVE REFUND' : 'REJECT REFUND',
-      text: (approve ? 'Refund ' : 'Reject the refund of ') + PC.money(r.amount_cents) + (approve ? ' to ' : ' for ') + r.user_email + '?',
+      text: (approve ? (r.kind === 'book' ? 'Credit ' : 'Refund ') : 'Reject the refund of ') + PC.money(r.amount_cents) + (approve ? (r.kind === 'book' ? ' back to the wallet of ' : ' to ') : ' for ') + r.user_email + '?',
       input: approve ? null : { label: 'Note to the user (optional)' },
       ok: approve ? 'APPROVE' : 'REJECT', cancel: 'CANCEL'
     }).then((res) => {
@@ -131,6 +133,7 @@
     tiles.appendChild(tile('Books done', String(c.books_done == null ? '—' : c.books_done)));
     tiles.appendChild(tile('Median cost (all)', PC.usd(c.median_cost_per_book_usd)));
     tiles.appendChild(tile('Total API spend', PC.usd(c.total_api_cost_usd)));
+    if (typeof c.shared_assets_cost_usd === 'number') tiles.appendChild(tile('Shared one-time assets', PC.usd(c.shared_assets_cost_usd), 'Character sheets reused by later books. Not in the per-book averages.'));
     tiles.appendChild(tile('Failed calls', String(c.failed_calls == null ? '—' : c.failed_calls), null, c.failed_calls > 0 ? 'warn' : ''));
 
     const kb = $('kind-body');

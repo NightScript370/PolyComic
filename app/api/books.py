@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import secrets
+import time
 import unicodedata
 from typing import Annotated
 
@@ -19,6 +20,7 @@ from sse_starlette import EventSourceResponse, ServerSentEvent
 
 from app.api.common import NOT_CONFIGURED, ApiError, error, parse_style, read_photo
 from app.auth.deps import CurrentUser, DbSession
+from app.billing import refunds
 from app.config import get_settings
 from app.db import repo, repo_assets
 from app.db.models import ACTIVE_STATUSES, DONE, QUEUED, Book
@@ -97,6 +99,15 @@ def _summary(book: Book, has_hero: bool) -> dict:
     }
 
 
+def _refund_view(book: Book, states: dict[str, dict]) -> dict:
+    """Per-book refund state for the book list: ``status`` None / pending / refunded /
+    denied; ``eligible`` = the owner may request one now (finished or failed, paid, not yet
+    returned or decided)."""
+    st = states.get(book.id) or {"status": None, "eligible": False, "amount_cents": 0}
+    return {"status": st["status"], "amount_cents": st["amount_cents"],
+            "eligible": bool(st["eligible"] and book.status in ("done", "failed"))}
+
+
 def _wallet():
     """The billing wallet (``app.billing.wallet``), imported lazily; tests replace this."""
     from app.billing import wallet
@@ -140,6 +151,7 @@ async def create_book(
     about: Annotated[str | None, Form()] = None,
     tier: Annotated[str | None, Form()] = None,
 ):
+    requested_at = time.monotonic()  # the book's end-to-end clock starts at the request
     uid = user.id  # plain int: the wallet may roll the session back (expiring ``user``)
     try:
         tier_id = parse_tier(tier)
@@ -215,7 +227,8 @@ async def create_book(
         est_cost_usd=0.0, pdf_filename="", photo_jpeg=image, tier=tier_id.value,
     )
     job = JobInput(book_id=book.id, user_id=uid, plan=plan, hero=hero, photo=image,
-                   charge_entry_id=charge_id, cost_cap_usd=tier_cfg.cost_cap_usd)
+                   charge_entry_id=charge_id, cost_cap_usd=tier_cfg.cost_cap_usd,
+                   requested_at=requested_at)
     try:
         await repo.create_book(session, book)
     except BaseException:
@@ -231,7 +244,9 @@ async def create_book(
 @router.get("")
 async def list_books(user: CurrentUser, session: DbSession):
     items = await repo.list_books(session, user.id)
-    return _json([_summary(i.book, i.has_hero) for i in items])
+    states = await refunds.book_refund_states(session, user.id, [i.book.id for i in items])
+    return _json([{**_summary(i.book, i.has_hero), "refund": _refund_view(i.book, states)}
+                  for i in items])
 
 
 @router.get("/{book_id}")
@@ -241,6 +256,8 @@ async def get_book(book_id: str, user: CurrentUser, session: DbSession):
     hero = await repo.has_hero(session, book.id)
     attempts = await repo_assets.attempt_summary(session, book.id)
     data = _summary(book, hero)
+    data["refund"] = _refund_view(
+        book, await refunds.book_refund_states(session, user.id, [book.id]))
     data.update({
         "preset": book.preset,
         "detail": book.detail,
@@ -349,6 +366,15 @@ async def page_png(book_id: str, page: int, user: CurrentUser, session: DbSessio
 @router.get("/{book_id}/pages/{page}/thumb.jpg")
 async def page_thumb(book_id: str, page: int, user: CurrentUser, session: DbSession):
     return _blob(await repo.get_page_blob(session, book_id, user.id, page, "thumb"),
+                 "image/jpeg")
+
+
+@router.get("/{book_id}/pages/{page}/attempts/{attempt}/thumb.jpg")
+async def attempt_thumb(book_id: str, page: int, attempt: int, user: CurrentUser,
+                        session: DbSession):
+    """Thumbnail of one generation (the live preview of a picture that is still being
+    checked or retried)."""
+    return _blob(await repo_assets.get_attempt_thumb(session, book_id, user.id, page, attempt),
                  "image/jpeg")
 
 

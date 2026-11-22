@@ -668,7 +668,7 @@ async def test_extra_retry_that_passes_is_not_budget_stopped():
 
 
 def test_hard_cap_setting_and_definite_kinds(monkeypatch):
-    assert get_settings().quality_hard_cap_s == 70.0
+    assert get_settings().quality_hard_cap_s == 46.0
     monkeypatch.setenv("QUALITY_HARD_CAP_S", "0")
     get_settings.cache_clear()
     plan = plan_book("red", [1], "n64", 2)

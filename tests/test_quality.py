@@ -451,7 +451,10 @@ async def test_book_quality_loop_regenerates_and_picks_best():
     assert len([c for c in book.costs if c.kind == "page" and c.page == 3]) == 3
 
 
-async def test_book_text_zone_avoids_face_and_regenerates_when_blocked():
+async def test_book_text_zone_avoids_face_and_regenerates_when_blocked(monkeypatch):
+    # the legacy "text moves to the clearest zone" mode (TEXT_ZONE_FIXED=false)
+    monkeypatch.setenv("TEXT_ZONE_FIXED", "false")
+    get_settings.cache_clear()
     story = load_story("jack")
     p1 = story.page(1).caption[:30]  # s01: bottom first, then top
     p4 = story.page(4).caption[:30]

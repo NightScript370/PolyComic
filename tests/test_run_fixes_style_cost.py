@@ -60,8 +60,9 @@ def test_page_prompt_repeats_the_style_technique_near_the_end():
     assert "pixelated nearest-neighbour textures" in tail
     assert "never a flat 2D illustration" in tail
     # ... after the composition rules, right before the strict rules
-    assert prompt.index("Rendering style") > prompt.index("Compose the scene")
-    assert prompt.index("Rendering style") < prompt.index("Strict rules")
+    assert prompt.rindex("Rendering style") > prompt.index("Compose the scene")
+    assert prompt.rindex("Rendering style") < prompt.index("Strict rules")
+    assert prompt.index("Rendering style") < prompt.index("Scene:")  # and near the top
     # the hero reference (the style anchor) gets it too, without "like the reference"
     hero = hero_prompt(N64, jack.hero_outfit)
     assert "low-polygon 3D render" in hero and "exactly like" not in hero.split(

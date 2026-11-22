@@ -80,7 +80,7 @@ attempt failed a LOCAL band check (rescue impossible) may start its retry during
 pass (``QUALITY_EARLY_BAND_RETRY``) when the projection with this book's actual costs fits
 and the token limiter has no queue. Each picture still makes at most ``max_attempts``.
 
-Time budget (``QUALITY_TIME_BUDGET_S``, default 45 s, measured from the start of the
+Time budget (``QUALITY_TIME_BUDGET_S``, default 36 s, measured from the REQUEST arrival of the
 book job): once it has passed, a picture that fails its check starts no further
 generation and keeps its best attempt so far (``budget_stopped``); a generation already
 running finishes. The hero gets at least 2 generations (everything depends on it) unless
@@ -89,7 +89,8 @@ the hard cap forbids it. Until the budget runs out every picture gets up to
 (contradiction / duplicate, blank or blurred band, identity mismatch) may make ONE more
 generation after the budget.
 
-Hard cap (``QUALITY_HARD_CAP_S``, default 70 s): it bounds the END of work, not its
+Hard cap (``QUALITY_HARD_CAP_S``, default 46 s from the request = 55 s target minus the PDF
+reserve): it bounds the END of work, not its
 start. Before the fix a book could reach ~90 s: a retry started at 44 s (budget not yet
 used up) or the definite-error extra started at 69.9 s still ran an image call (~12-20 s)
 and a grade (~3-6 s); a rate-limit wait was allowed when it ended before the cap, so the
@@ -155,10 +156,12 @@ from app.pipeline.cast_sheets import (
     supporting,
 )
 from app.pipeline.family import (  # noqa: F401 - default_family_variant re-exported
+    HeroLook,
     choose_family_variant,
     default_family_variant,
     kept_items,
     kept_items_phrase,
+    resolve_hero_look,
 )
 from app.pipeline.family_sheet import (
     family_characters,
@@ -179,7 +182,6 @@ from app.pipeline.portraits import (
     presence_names,
 )
 from app.pipeline.prompts import (
-    HERO_CAPTION,
     RefSpec,
     cast_correction,
     cast_expectations,
@@ -188,6 +190,8 @@ from app.pipeline.prompts import (
     expression_correction,
     family_correction,
     family_expectations,
+    fixed_zone_name,
+    hero_caption,
     page_characters,
     page_props,
     scene_prompt,
@@ -942,12 +946,24 @@ class BookGenerator:
             RetryScheduler(self) if grader is not None and settings.quality_retry_phase
             else None)
         self.early_band_retry = settings.quality_early_band_retry
+        self.early_retry = settings.quality_early_retry
+        # The page text always uses the layout's FIRST allowed zone (TEXT_ZONE_FIXED).
+        self.text_zone_fixed = settings.text_zone_fixed
+        # First accepted (passing) page picture: the style anchor sent with a retry that
+        # was rejected for its art style.
+        self._style_anchor: bytes | None = None
         self.strip_rescue = settings.strip_rescue
         self.rescue_max_depth = settings.strip_rescue_max_depth
         self.rescue_max_crop = settings.strip_rescue_max_crop
         # Free strip rescues of this book ("p6 a1 seam top 12% -> passed").
         self.rescues: list[str] = []
         self._page_tokens_est = PAGE_INPUT_TOKENS_EST
+
+    @property
+    def hero_look(self) -> HeroLook:
+        """How old the hero is drawn: the entered age wins, else the photo's age group
+        (teen -> teenager, everyone else -> child version)."""
+        return resolve_hero_look(self.traits, self.hero.age)
 
     # --- time budget -----------------------------------------------------------------------
 
@@ -1217,6 +1233,9 @@ class BookGenerator:
         if style:
             extra["style"] = style
         if hero_look:
+            look = self.hero_look
+            if look.teen:
+                extra["hero_age"] = look.phrase
             items = kept_items(self.traits)
             if items:
                 extra["hero_items"] = items
@@ -1390,7 +1409,7 @@ class BookGenerator:
             # event too, and the hero then starts without the line.
             await self._traits_ready.wait()
             prompt = hero_identity_prompt(self.plan.style, self.plan.story, self.traits,
-                                          corrections)
+                                          corrections, self.hero_look)
             return await self._image(self.hero_provider, "hero", None, prompt, [self.photo],
                                      must_finish=not made)
 
@@ -1408,7 +1427,7 @@ class BookGenerator:
             core = self.plan.story.hero_outfit_core or self.plan.story.hero_outfit
             try:
                 g = await self._grade(img.png, page=None, hero_png=None,
-                                      caption=HERO_CAPTION, must=HERO_MUST_SEE,
+                                      caption=hero_caption(self.hero_look), must=HERO_MUST_SEE,
                                       subject="hero", hero_outfit=core)
             finally:
                 if len(made) == 1:
@@ -1417,7 +1436,7 @@ class BookGenerator:
                 return quality.Check(passed=True)
             return quality.evaluate(g, min_likeness=self.min_likeness_hero,
                                     min_fidelity=self.min_fidelity, traits=self.traits,
-                                    hero_outfit=core,
+                                    hero_outfit=core, hero_look=self.hero_look,
                                     style_hint=style_correction(self.plan.style))
 
         res = await self._loop(HERO_PAGE, generate, check, min_attempts=HERO_MIN_ATTEMPTS)
@@ -1520,6 +1539,11 @@ class BookGenerator:
         # photo pulled pages back to an adult person and cost ~1k input tokens per call.
         return select_refs(hero_png, None, plate, char_refs, cap)
 
+    def _default_placement(self, layout) -> Placement:
+        """The page's text zone when nothing was graded (no boxes): the layout's first
+        allowed zone."""
+        return place_text(layout, fixed=self.text_zone_fixed)
+
     async def page_step(self, page: Page, hero_png: bytes) -> BookPage:
         t0 = time.perf_counter()
         layout = get_layout(page.layout)
@@ -1550,17 +1574,27 @@ class BookGenerator:
         presence = presence_names(story, page) if self.grader is not None else []
         made: list[bool] = []  # one entry per attempt that produced a picture
         padded: list[int] = []  # attempts rejected for a padded / blank / blurred band
+        style_bad = [False]  # the last graded attempt was rejected for its art style
+        ref_cap = max_reference_images(self.page_provider)
+        fixed_zone = fixed_zone_name(page) if self.text_zone_fixed else None
 
         async def generate(n, corrections, quiet):
+            use_specs, use_images = specs, images
+            anchor = self._style_anchor
+            # A retry after an off-style picture also gets an accepted page of this book
+            # as a style anchor (when the provider's reference limit has room for it).
+            if style_bad[0] and anchor is not None and len(images) < ref_cap:
+                use_specs, use_images = [*specs, RefSpec("style")], [*images, anchor]
             prompt = scene_prompt(self.plan.style, page, self.plan.story,
-                                  self.plan.family_variant, refs=specs,
+                                  self.plan.family_variant, refs=use_specs,
                                   corrections=corrections,
                                   quiet_zone=quiet.zone.zone if quiet else None,
                                   quiet_item=quiet.blocker_phrase if quiet else None,
                                   hero_items=kept_items_phrase(self.traits),
-                                  vertical_rescue=self.vertical_rescue(n, len(padded)))
-            return await self._image(self.page_provider, "page", page.page, prompt, images,
-                                     must_finish=not made)
+                                  vertical_rescue=self.vertical_rescue(n, len(padded)),
+                                  hero_look=self.hero_look, text_zone=fixed_zone)
+            return await self._image(self.page_provider, "page", page.page, prompt,
+                                     use_images, must_finish=not made)
 
         async def check(n, img):
             made.append(True)
@@ -1573,7 +1607,7 @@ class BookGenerator:
 
         async def check_once(n, img):
             if self.grader is None:
-                return quality.Check(passed=True, placement=place_text(layout))
+                return quality.Check(passed=True, placement=self._default_placement(layout))
             band = await asyncio.to_thread(find_blank_band, img.png)
             if band is not None:  # no grade of the padded picture (saves time and money)
                 padded.append(n)
@@ -1583,7 +1617,7 @@ class BookGenerator:
                 if rescued is not None:
                     return rescued
                 return quality.Check(passed=False, issues=[band.issue],
-                                     placement=place_text(layout), local=True,
+                                     placement=self._default_placement(layout), local=True,
                                      definite=True)
             return await graded(n, img.png)
 
@@ -1628,21 +1662,27 @@ class BookGenerator:
                                   hero_outfit=page_outfit, cast_expressions=expr_lines,
                                   kind=kind)
             if g is None:
-                return quality.Check(passed=True, placement=place_text(layout))
+                return quality.Check(passed=True, placement=self._default_placement(layout))
             if n not in padded and any(
                     k in " ".join(g.contradictions).lower()
                     for k in ("padded", "letterbox", "blurred strip", "empty band", "seam")):
                 padded.append(n)
-            placement = place_text(layout, g.boxes)
+            placement = place_text(layout, g.boxes, fixed=self.text_zone_fixed)
             if placement.blocked:
-                log.warning("page=%d attempt=%d text zone %s covers %s (needs attention)",
-                            page.page, n, placement.zone.zone, placement.blocker_phrase)
-            return quality.evaluate(g, min_likeness=self.min_likeness,
+                log.warning("page=%d attempt=%d fixed text zone %s covers %s (needs "
+                            "attention)", page.page, n, placement.zone.zone,
+                            placement.blocker_phrase)
+            style_bad[0] = not g.style_match
+            chk = quality.evaluate(g, min_likeness=self.min_likeness,
                                     min_fidelity=self.min_fidelity, placement=placement,
                                     traits=self.traits, family_hint=family_hint,
                                     cast_hint=cast_hint, expression_hint=expression_hint,
                                     hero_outfit=page_outfit, style_hint=style_hint,
-                                    cast_expression_hint=expr_hint)
+                                    cast_expression_hint=expr_hint,
+                                    hero_look=self.hero_look)
+            if chk.passed and self._style_anchor is None:
+                self._style_anchor = png
+            return chk
 
         async def admit(n_next: int, definite: bool, best: quality.Attempt) -> RetryTicket:
             assert self.scheduler is not None
@@ -1652,18 +1692,20 @@ class BookGenerator:
                 page=page.page, attempt=n_next,
                 tier=TIER_DEFINITE if definite else TIER_SOFT, score=best.score,
                 severity=severity(chk),
-                early=bool(self.early_band_retry and definite and chk is not None
-                           and chk.local))
+                early=bool(definite and chk is not None
+                           and ((self.early_band_retry and chk.local)
+                                or self.early_retry)))
             return await self.scheduler.admit(req)
 
         res = await self._loop(page.page, generate, check,
                                admit=admit if self.scheduler is not None else None)
         chosen = res.chosen
         placement: Placement = (chosen.check.placement if chosen.check and chosen.check.placement
-                                else place_text(layout))
+                                else self._default_placement(layout))
         if placement.blocked:
-            log.warning("page=%d final text zone %s still covers %s (needs attention)",
-                        page.page, placement.zone.zone, placement.blocker_phrase)
+            log.warning("page=%d final FIXED text zone %s still covers %s after %d "
+                        "attempt(s) - the zone is kept (text is never moved)", page.page,
+                        placement.zone.zone, placement.blocker_phrase, res.count)
         grade = chosen.check.grade if chosen.check is not None else None
         portrait_png, portrait = await self.portrait_step(page, grade)
         bp = BookPage(

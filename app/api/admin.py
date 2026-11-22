@@ -15,7 +15,7 @@ from app.billing import refunds
 from app.billing.stripe_client import BillingError
 from app.billing.wallet import get_balance_cents
 from app.db import repo
-from app.db.models import User, WalletEntry
+from app.db.models import RK_TOPUP, Book, User, WalletEntry
 from app.tiers import Tier, tier_config
 
 router = APIRouter(prefix="/api/admin")
@@ -33,9 +33,15 @@ AdminUser = Annotated[User, Depends(admin_user)]
 async def _request_json(session, r) -> dict:
     u = await session.get(User, r.user_id)
     topup = await session.get(WalletEntry, r.topup_entry_id)
+    book = await session.get(Book, r.book_id) if r.book_id else None
     return {**refund_json(r), "user_id": r.user_id,
             "user_email": u.email if u else None, "user_name": u.name if u else None,
-            "topup_amount_cents": topup.amount_cents if topup else None,
+            "book_title": book.title if book else None,
+            "book_story": book.story if book else None,
+            "book_tier": book.tier if book else None,
+            # top-up requests only (a book request's entry is the book's charge)
+            "topup_amount_cents": (topup.amount_cents if topup and r.kind == RK_TOPUP
+                                   else None),
             "balance_cents": await get_balance_cents(session, r.user_id)}
 
 
@@ -107,6 +113,7 @@ async def costs(admin: AdminUser, session: DbSession) -> JSONResponse:
     rows = await repo.done_book_costs(session)
     by_kind, failed = await repo.cost_by_kind(session)
     avg, median = _stats([r.cost_usd for r in rows])
+    shared_calls, shared_usd = await repo.shared_asset_cost(session)
     return JSONResponse({
         # Backward compatibility: the Cost-Efficient (default tier) price; see ``tiers``.
         "price_usd": round(tier_config(Tier.COST_EFFICIENT).price_cents / 100, 2),
@@ -115,11 +122,16 @@ async def costs(admin: AdminUser, session: DbSession) -> JSONResponse:
         "median_cost_per_book_usd": median,
         "tiers": _tier_stats(rows),
         "total_api_cost_usd": round(sum(c for _, c in by_kind.values()), 4),
+        # Averages above count each book's own calls only; the one-time shared assets
+        # (supporting-character sheets + checks, reused by later books) are reported here.
+        "shared_assets_cost_usd": round(shared_usd, 4),
+        "shared_assets_calls": shared_calls,
         "by_kind": {k: {"calls": n, "cost_usd": round(c, 4)} for k, (n, c) in by_kind.items()},
         "failed_calls": failed,
         "recent_books": [
             {"book_id": r.book_id, "story": r.story, "tier": r.tier,
              "created_at": repo.iso(r.created_at), "cost_usd": round(r.cost_usd, 4),
-             "calls": r.calls, "retries": r.retries}
+             "calls": r.calls, "retries": r.retries,
+             "shared_cost_usd": round(r.shared_cost_usd, 4)}
             for r in rows[:20]],
     })
