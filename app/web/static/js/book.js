@@ -593,6 +593,7 @@
         $('resume-offer').hidden = true;
         resumeDismissed = true;
         watch(r.data.book_id, r.data.events_url);
+        window.scrollTo({ top: 0, behavior: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth' });
         loadBooks();
         refreshWallet();
       } else {
